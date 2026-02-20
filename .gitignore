@@ -1,0 +1,34 @@
+# Maven build output
+target/
+
+# IDE files
+.idea/
+*.iml
+*.iws
+*.ipr
+.eclipse/
+.classpath
+.project
+.settings/
+*.factorypath
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Package files
+*.jar
+*.war
+*.ear
+
+# Keycloak provider copy (don't commit deployed JARs)
+*.jar
+
+# Environment / secrets
+.env
+*.env

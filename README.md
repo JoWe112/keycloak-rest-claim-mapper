@@ -1,93 +1,97 @@
 # kc-rest-claim-mapper
 
+A **Keycloak 26.x custom OIDC Protocol Mapper** that enriches federated users with attributes fetched from one or more external REST APIs at token issuance time.
 
+## Features
 
-## Getting started
+- 🔌 Works with **any existing federation** (LDAP, AD, or any User Storage SPI)
+- 🔄 **Persistent users** (imported): attributes are cached in `UserModel` with a configurable TTL; re-fetched automatically when stale
+- ⚡ **Transient users** (non-imported): attributes fetched live at every token issuance
+- 🌐 Up to **5 configurable REST API endpoints** called in parallel
+- 🔐 Supports **API key** and **OAuth2 client credentials** authentication
+- 📜 **GraalVM Polyglot JS** for dynamic query string construction (`query.script`)
+- 🗂️ **JSONPath** (Jayway) and plain field mapping to OIDC claims
+- 🧪 **Test Query panel** — live REST endpoint testing via Admin API without a real user login
+- 📦 Deployed as a single fat JAR in `/opt/keycloak/providers/`
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Quick Start
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+### 1. Build
 
-## Add your files
+```bash
+mvn clean package
+```
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+This produces `target/kc-rest-claim-mapper-1.0.0.jar` (a shaded fat JAR with all dependencies).
+
+### 2. Deploy
+
+```bash
+cp target/kc-rest-claim-mapper-1.0.0.jar /opt/keycloak/providers/
+/opt/keycloak/bin/kc.sh build
+/opt/keycloak/bin/kc.sh start
+```
+
+### 3. Configure
+
+In the Keycloak Admin Console:
+
+- **Per client**: `Clients → <client> → Client Scopes → <client>-dedicated → Add Mapper → By Configuration → REST Attribute Enrichment`
+- **Shared (all clients)**: `Client Scopes → Create scope → Mappers → Add Mapper → By Configuration → REST Attribute Enrichment`
+
+See [`docs/ADMIN_GUIDE.md`](docs/ADMIN_GUIDE.md) for the full configuration reference.
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) | Mapper configuration, Client Scope setup, Test Query panel |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Build, deploy, and verify on Keycloak 26.x |
+| [CACHING.md](docs/CACHING.md) | TTL caching strategy for persistent users |
+| [ERROR_HANDLING.md](docs/ERROR_HANDLING.md) | Logging strategy and graceful degradation |
+
+## Configuration Reference (Quick)
+
+| Key | Description |
+|---|---|
+| `endpoint.count` | Number of active endpoints (1–5) |
+| `cache.ttl.seconds` | Cache TTL for persistent users (default: 300) |
+| `endpoint.N.url` | REST API base URL |
+| `endpoint.N.auth.type` | `apikey` or `oauth2` |
+| `endpoint.N.auth.value` | API key, or `clientId:clientSecret:tokenUrl` |
+| `endpoint.N.query.param.K` | User context field name (e.g. `username`, `email`, `sub`) |
+| `endpoint.N.query.script` | JS expression building the query string |
+| `endpoint.N.mapping` | `apiField→claimName` pairs (comma-separated, JSONPath supported) |
+
+## Project Structure
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/JoWe112/kc-rest-claim-mapper.git
-git branch -M main
-git push -uf origin main
+src/main/java/com/github/jowe112/keycloak/
+  mapper/
+    RestClaimMapper.java          # Main mapper (extends AbstractOIDCProtocolMapper)
+    ConfigParser.java             # Parses KC config map → List<EndpointConfig>
+    EndpointConfig.java           # Per-endpoint config POJO
+    MappingRule.java              # apiField→claimName mapping rule
+    QueryScriptEvaluator.java     # GraalVM Polyglot JS evaluation
+    RestApiClient.java            # Apache HttpClient 5 wrapper (apikey + oauth2)
+    JsonPathMapper.java           # Jayway JSONPath + Jackson field mapping
+    PersistentUserHandler.java    # TTL cache via UserModel attributes
+    TransientUserHandler.java     # Live fetch, no persistence
+  admin/
+    TestQueryResourceProvider.java        # JAX-RS test-query resource
+    TestQueryResourceProviderFactory.java # RealmResourceProviderFactory
+
+src/main/resources/META-INF/services/
+  org.keycloak.protocol.ProtocolMapper
+  org.keycloak.services.resource.RealmResourceProviderFactory
 ```
 
-## Integrate with your tools
+## Requirements
 
-* [Set up project integrations](https://gitlab.com/JoWe112/kc-rest-claim-mapper/-/settings/integrations)
-
-## Collaborate with your team
-
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+- Keycloak **26.x** (Quarkus distribution, GraalVM JDK)
+- Java **21**
+- Maven **3.9+**
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+MIT

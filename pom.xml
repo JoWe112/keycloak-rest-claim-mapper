@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.github.jowe112.keycloak</groupId>
+    <artifactId>kc-rest-claim-mapper</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>Keycloak REST Claim Mapper</name>
+    <description>
+        Custom OIDC Protocol Mapper for Keycloak 26.x that enriches federated users
+        with attributes fetched from one or more external REST APIs at token issuance time.
+        Supports persistent (imported) and transient (non-imported) federated users,
+        parallel multi-endpoint calls, GraalVM JS query scripts, and JSONPath claim mapping.
+    </description>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Keycloak 26.x -->
+        <keycloak.version>26.0.7</keycloak.version>
+
+        <!-- Apache HttpClient 5 -->
+        <httpclient5.version>5.3.1</httpclient5.version>
+
+        <!-- Jackson -->
+        <jackson.version>2.17.2</jackson.version>
+
+        <!-- Jayway JSONPath -->
+        <jsonpath.version>2.9.0</jsonpath.version>
+
+        <!-- GraalVM SDK — provided; KC 26 Quarkus ships on GraalVM JDK -->
+        <graalvm.version>24.1.1</graalvm.version>
+
+        <!-- Shade plugin -->
+        <shade.plugin.version>3.6.0</shade.plugin.version>
+    </properties>
+
+    <dependencies>
+
+        <!-- ===================== Keycloak SPI (provided) ===================== -->
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-server-spi</artifactId>
+            <version>${keycloak.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-server-spi-private</artifactId>
+            <version>${keycloak.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-services</artifactId>
+            <version>${keycloak.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-core</artifactId>
+            <version>${keycloak.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ===================== JBoss Logging (provided — already in KC) === -->
+        <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>jboss-logging</artifactId>
+            <version>3.5.3.Final</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ===================== Jakarta RESTful WS (provided — Quarkus) ==== -->
+        <dependency>
+            <groupId>jakarta.ws.rs</groupId>
+            <artifactId>jakarta.ws.rs-api</artifactId>
+            <version>3.1.0</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ===================== GraalVM Polyglot (provided) ================ -->
+        <!--
+            KC 26 Quarkus distribution ships on GraalVM JDK, so the polyglot
+            API is already on the classpath. Mark as provided so it is NOT
+            bundled in the fat JAR (avoids ClassLoader conflicts).
+            If you run on a plain JDK you will need to switch scope to
+            'compile' and add the js-language artifact as well.
+        -->
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>polyglot</artifactId>
+            <version>${graalvm.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ===================== Apache HttpClient 5 (bundled) ============== -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>${httpclient5.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- ===================== Jackson (bundled) ========================== -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- ===================== Jayway JSONPath (bundled) ================== -->
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+            <version>${jsonpath.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- ===================== SLF4J API (JSONPath transitive dep) ======== -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.13</version>
+            <scope>compile</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+
+            <!-- Compiler -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <!--
+                Shade plugin: produces a fat JAR ready for deployment to
+                /opt/keycloak/providers/
+                The main JAR is replaced by the shaded one.
+                We relocate bundled libs to avoid conflicts with KC's own
+                copies of Jackson / HttpClient on the classpath.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${shade.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <!-- Relocate bundled libs to avoid classpath conflicts -->
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.apache.hc</pattern>
+                                    <shadedPattern>com.github.jowe112.shaded.hc</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.fasterxml.jackson</pattern>
+                                    <shadedPattern>com.github.jowe112.shaded.jackson</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.jayway.jsonpath</pattern>
+                                    <shadedPattern>com.github.jowe112.shaded.jsonpath</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>net.minidev</pattern>
+                                    <shadedPattern>com.github.jowe112.shaded.minidev</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/LICENSE*</exclude>
+                                        <exclude>META-INF/NOTICE*</exclude>
+                                        <exclude>META-INF/DEPENDENCIES</exclude>
+                                        <!-- Exclude module-info from all multi-release JAR paths
+                                             to suppress "overlapping classes" shade warnings -->
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/versions/*/module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <!-- Merge SPI service files from all bundled deps -->
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"/>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>
