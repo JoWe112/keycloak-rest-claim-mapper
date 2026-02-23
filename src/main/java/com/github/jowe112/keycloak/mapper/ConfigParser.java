@@ -27,7 +27,7 @@ public final class ConfigParser {
     private static final Logger LOG = Logger.getLogger(ConfigParser.class);
 
     /** Maximum number of endpoints per mapper instance. */
-    public static final int MAX_ENDPOINTS = 5;
+    public static final int MAX_ENDPOINTS = 3;
 
     /** Maximum number of query parameters per endpoint. */
     public static final int MAX_QUERY_PARAMS = 5;

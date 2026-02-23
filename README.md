@@ -7,8 +7,8 @@ A **Keycloak 26.x custom OIDC Protocol Mapper** that enriches federated users wi
 - 🔌 Works with **any existing federation** (LDAP, AD, or any User Storage SPI)
 - 🔄 **Persistent users** (imported): attributes are cached in `UserModel` with a configurable TTL; re-fetched automatically when stale
 - ⚡ **Transient users** (non-imported): attributes fetched live at every token issuance
-- 🌐 Up to **5 configurable REST API endpoints** called in parallel
-- 🔐 Supports **API key** and **OAuth2 client credentials** authentication
+- 🌐 Up to **3 configurable REST API endpoints** called in parallel
+- 🔐 Supports **API key**, **Basic Auth**, and **OAuth2 client credentials** authentication
 - 📜 **GraalVM Polyglot JS** for dynamic query string construction (`query.script`)
 - 🗂️ **JSONPath** (Jayway) and plain field mapping to OIDC claims
 - 🧪 **Test Query panel** — live REST endpoint testing via Admin API without a real user login
@@ -54,11 +54,11 @@ See [`docs/ADMIN_GUIDE.md`](docs/ADMIN_GUIDE.md) for the full configuration refe
 
 | Key | Description |
 |---|---|
-| `endpoint.count` | Number of active endpoints (1–5) |
+| `endpoint.count` | Number of active endpoints (1–3) |
 | `cache.ttl.seconds` | Cache TTL for persistent users (default: 300) |
 | `endpoint.N.url` | REST API base URL |
-| `endpoint.N.auth.type` | `apikey` or `oauth2` |
-| `endpoint.N.auth.value` | API key, or `clientId:clientSecret:tokenUrl` |
+| `endpoint.N.auth.type` | `apikey`, `basic`, or `oauth2` |
+| `endpoint.N.auth.value` | API key, base64 encoded `username:password`, or `clientId:clientSecret:tokenUrl` |
 | `endpoint.N.query.param.K` | User context field name (e.g. `username`, `email`, `sub`) |
 | `endpoint.N.query.script` | JS expression building the query string |
 | `endpoint.N.mapping` | `apiField→claimName` pairs (comma-separated, JSONPath supported) |

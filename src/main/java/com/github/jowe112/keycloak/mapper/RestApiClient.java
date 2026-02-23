@@ -108,6 +108,10 @@ public final class RestApiClient {
         String url = endpoint.getUrl() + (queryString != null ? queryString : "");
         try {
             HttpGet request = new HttpGet(url);
+            request.setHeader("Accept", "application/json");
+            request.setHeader("Content-Type", "application/json");
+            request.setHeader("apollo-require-preflight", "true");
+
             applyAuth(endpoint, request);
 
             return httpClient.execute(request, response -> {
@@ -133,6 +137,11 @@ public final class RestApiClient {
             String token = resolveOAuth2Token(endpoint.getAuthValue());
             if (token != null) {
                 request.setHeader("Authorization", "Bearer " + token);
+            }
+        } else if ("basic".equalsIgnoreCase(endpoint.getAuthType())) {
+            String val = endpoint.getAuthValue();
+            if (val != null && !val.isBlank()) {
+                request.setHeader("Authorization", "Basic " + val);
             }
         } else {
             // Default: apikey

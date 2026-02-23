@@ -47,17 +47,17 @@ All clients that include this scope will now receive the enriched claims.
 
 | Config Key | Label | Description | Default |
 |---|---|---|---|
-| `endpoint.count` | Number of Endpoints | How many endpoint slots are active (1–5). Only slots 1..N are read. | `1` |
+| `endpoint.count` | Number of Endpoints | How many endpoint slots are active (1–3). Only slots 1..N are read. | `1` |
 | `cache.ttl.seconds` | Cache TTL (seconds) | For **persistent** (imported) users: how many seconds to cache REST attributes in `UserModel` before re-fetching. | `300` |
 
-### Per-Endpoint Settings (repeat for N = 1..5)
+### Per-Endpoint Settings (repeat for N = 1..3)
 
 | Config Key | Label | Description |
 |---|---|---|
 | `endpoint.N.url` | Endpoint N: URL | Base REST API URL. Leave blank to disable this slot. |
-| `endpoint.N.auth.type` | Endpoint N: Auth Type | `apikey` or `oauth2` |
-| `endpoint.N.auth.value` | Endpoint N: Auth Value | For `apikey`: the key sent as `X-API-Key`. For `oauth2`: `clientId:clientSecret:tokenUrl`. |
-| `endpoint.N.query.param.1` … `query.param.5` | Endpoint N: Query Param K | Keycloak user context field whose value is injected as a JS variable. Examples: `username`, `email`, `sub`, `firstName`. |
+| `endpoint.N.auth.type` | Endpoint N: Auth Type | `apikey`, `basic`, or `oauth2` |
+| `endpoint.N.auth.value` | Endpoint N: Auth Value | For `apikey`: the key sent as `X-API-Key`. For `basic`: base64 encoded `username:password`. For `oauth2`: `clientId:clientSecret:tokenUrl`. |
+| `endpoint.N.query.param.1` … `query.param.3` | Endpoint N: Query Param K | Keycloak user context field whose value is injected as a JS variable. Examples: `username`, `email`, `sub`, `firstName`. |
 | `endpoint.N.query.script` | Endpoint N: Query Script | JavaScript expression (GraalVM) that returns the query string. Declared params are available as variables. |
 | `endpoint.N.mapping` | Endpoint N: Claim Mapping | Comma-separated `apiField→claimName` pairs. Supports JSONPath (prefix with `$`). |
 
@@ -151,13 +151,14 @@ curl -s -X POST \
 
 - Endpoint 1: user roles from API key–protected service
 - Endpoint 2: department from OAuth2-protected profile service
+- Endpoint 3: external ID from Basic Auth-protected service
 - Cache TTL: 5 minutes
 
 ### Mapper Configuration
 
 | Key | Value |
 |---|---|
-| `endpoint.count` | `2` |
+| `endpoint.count` | `3` |
 | `cache.ttl.seconds` | `300` |
 | `endpoint.1.url` | `https://api.example.com/users` |
 | `endpoint.1.auth.type` | `apikey` |
@@ -172,6 +173,12 @@ curl -s -X POST \
 | `endpoint.2.query.param.1` | `sub` |
 | `endpoint.2.query.script` | `"?id=" + sub` |
 | `endpoint.2.mapping` | `$.user.profile.department→user_dept` |
+| `endpoint.3.url` | `https://api.example.com/legacy` |
+| `endpoint.3.auth.type` | `basic` |
+| `endpoint.3.auth.value` | `YWRtaW46c2VjcmV0cGFzc3dvcmQ=` |
+| `endpoint.3.query.param.1` | `username` |
+| `endpoint.3.query.script` | `"?user=" + username` |
+| `endpoint.3.mapping` | `legacy_id→user_legacy_id` |
 
 ### Resulting JWT Claims
 
@@ -180,6 +187,7 @@ curl -s -X POST \
   "sub": "abc123",
   "username": "jdoe",
   "user_role": "admin",
-  "user_dept": "Engineering"
+  "user_dept": "Engineering",
+  "user_legacy_id": "98765"
 }
 ```

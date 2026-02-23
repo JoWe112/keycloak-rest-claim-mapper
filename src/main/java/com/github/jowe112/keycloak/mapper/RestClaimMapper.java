@@ -59,9 +59,10 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
         // ── General settings ─────────────────────────────────────────────────
         props.add(cfgProp(CFG_ENDPOINT_COUNT,
                 "Number of Endpoints",
-                "How many REST API endpoints are configured (max 5). "
+                "How many REST API endpoints are configured (max 3). "
                         + "Only slots 1..N are read.",
-                ProviderConfigProperty.STRING_TYPE, "1"));
+                ProviderConfigProperty.LIST_TYPE, "1",
+                List.of("1", "2", "3")));
 
         props.add(cfgProp(CFG_CACHE_TTL,
                 "Cache TTL (seconds)",
@@ -69,7 +70,7 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
                         + "attributes in UserModel before re-fetching. Default: 300.",
                 ProviderConfigProperty.STRING_TYPE, "300"));
 
-        // ── Per-endpoint slots (1..5) ─────────────────────────────────────────
+        // ── Per-endpoint slots (1..3) ─────────────────────────────────────────
         for (int n = 1; n <= ConfigParser.MAX_ENDPOINTS; n++) {
             final String prefix = "endpoint." + n;
 
@@ -80,13 +81,14 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
 
             props.add(cfgProp(prefix + ".auth.type",
                     "Endpoint " + n + ": Auth Type",
-                    "Authentication type: 'apikey' or 'oauth2'.",
+                    "Authentication type: 'apikey', 'basic', or 'oauth2'.",
                     ProviderConfigProperty.LIST_TYPE, "apikey",
-                    List.of("apikey", "oauth2")));
+                    List.of("apikey", "basic", "oauth2")));
 
             props.add(cfgProp(prefix + ".auth.value",
                     "Endpoint " + n + ": Auth Value",
                     "For apikey: the API key sent as X-API-Key. "
+                            + "For basic: base64 encoded 'username:password'. "
                             + "For oauth2: 'clientId:clientSecret:tokenUrl'.",
                     ProviderConfigProperty.PASSWORD, ""));
 
