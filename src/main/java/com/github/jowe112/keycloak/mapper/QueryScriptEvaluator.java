@@ -55,6 +55,7 @@ public final class QueryScriptEvaluator {
 
         try (Context ctx = Context.newBuilder("js")
                 .allowAllAccess(false)
+                .option("engine.WarnInterpreterOnly", "false")
                 .build()) {
 
             Value result = ctx.eval("js", fullScript.toString());
