@@ -33,6 +33,16 @@ Or for a running instance via `kc.sh`:
 /opt/keycloak/bin/kcadm.sh update serverinfo -s 'loglevel={"com.github.jowe112.keycloak":"DEBUG"}'
 ```
 
+### Container / Kubernetes (Environment Variables)
+
+When running Keycloak as a container (e.g., Docker or Kubernetes), the easiest way to enable debug logging is to set the `KC_LOG_LEVEL` environment variable in your deployment manifest:
+
+```yaml
+env:
+  - name: KC_LOG_LEVEL
+    value: "INFO,com.github.jowe112.keycloak:DEBUG"
+```
+
 ## Error Scenarios and Handling
 
 | Scenario | Handling |
