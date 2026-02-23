@@ -4,6 +4,7 @@ import org.jboss.logging.Logger;
 import org.keycloak.models.UserModel;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,13 @@ public final class PersistentUserHandler {
     private PersistentUserHandler() {
     }
 
+    // ── Internal Record ───────────────────────────────────────────────────────
+
+    // Holds the result from the background HTTP request so we can apply it safely
+    // on the main thread
+    private record EndpointFetchResult(EndpointConfig endpoint, Map<String, Object> claims, boolean success) {
+    }
+
     /**
      * Fetches and caches REST attributes for a persistent user.
      *
@@ -57,85 +65,90 @@ public final class PersistentUserHandler {
             Map<String, String> userContext,
             long ttlSeconds) {
 
-        Map<String, Object> claims = new HashMap<>();
+        Map<String, Object> finalClaims = new HashMap<>();
         long now = Instant.now().getEpochSecond();
+        List<CompletableFuture<EndpointFetchResult>> fetchTasks = new ArrayList<>();
 
-        // Fire parallel tasks per endpoint
-        List<CompletableFuture<Map<String, Object>>> futures = endpoints.stream()
-                .filter(EndpointConfig::isConfigured)
-                .map(ep -> CompletableFuture.supplyAsync(
-                        () -> fetchForEndpoint(ep, user, userContext, now, ttlSeconds), EXECUTOR))
-                .toList();
+        for (EndpointConfig ep : endpoints) {
+            if (!ep.isConfigured()) {
+                continue;
+            }
 
-        for (CompletableFuture<Map<String, Object>> future : futures) {
+            String cachedAtKey = CACHE_PREFIX + "endpoint." + ep.getIndex() + ".cached_at";
+            List<String> cachedAtValues = user.getAttributeStream(cachedAtKey).toList();
+            boolean cacheHit = false;
+
+            if (!cachedAtValues.isEmpty()) {
+                try {
+                    long cachedAt = Long.parseLong(cachedAtValues.get(0));
+                    if ((now - cachedAt) < ttlSeconds) {
+                        // Within TTL — read from user attributes
+                        LOG.debugf("Cache hit for endpoint %d, user %s", ep.getIndex(), user.getId());
+                        Map<String, Object> cachedClaims = readFromCache(user, ep);
+                        finalClaims.putAll(cachedClaims);
+                        cacheHit = true;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // Corrupt cache — re-fetch
+                }
+            }
+
+            if (!cacheHit) {
+                // Cache miss or stale — dispatch fetch to background thread
+                LOG.debugf("Cache miss for endpoint %d, user %s — fetching from REST API",
+                        ep.getIndex(), user.getId());
+                Map<String, String> scriptVars = buildScriptVars(ep, userContext);
+
+                CompletableFuture<EndpointFetchResult> future = CompletableFuture.supplyAsync(() -> {
+                    String queryString = QueryScriptEvaluator.evaluate(ep.getQueryScript(), scriptVars);
+                    String rawJson = RestApiClient.getInstance().fetchJson(ep, queryString);
+
+                    if (rawJson == null) {
+                        LOG.warnf("Endpoint %d returned no data for user %s", ep.getIndex(), user.getId());
+                        return new EndpointFetchResult(ep, Map.of(), false);
+                    }
+
+                    Map<String, Object> mapped = JsonPathMapper.map(rawJson, ep.getMappingRules());
+                    return new EndpointFetchResult(ep, mapped, true);
+                }, EXECUTOR);
+
+                fetchTasks.add(future);
+            }
+        }
+
+        // Wait for all fetch tasks and write results to the UserModel sequentially on
+        // the main thread
+        for (CompletableFuture<EndpointFetchResult> future : fetchTasks) {
             try {
-                claims.putAll(future.join());
+                EndpointFetchResult result = future.join();
+                Map<String, Object> mappedClaims = result.claims();
+                EndpointConfig ep = result.endpoint();
+
+                if (result.success()) {
+                    finalClaims.putAll(mappedClaims);
+
+                    // Persist to Keycloak UserModel attributes (JPA requires an active transaction)
+                    // This MUST run on the main thread
+                    for (Map.Entry<String, Object> entry : mappedClaims.entrySet()) {
+                        String attrKey = CACHE_PREFIX + entry.getKey();
+                        Object val = entry.getValue();
+                        if (val instanceof List<?> list) {
+                            user.setAttribute(attrKey, list.stream().map(Object::toString).toList());
+                        } else {
+                            user.setSingleAttribute(attrKey, val.toString());
+                        }
+                    }
+
+                    // Update cached_at timestamp
+                    String cachedAtKey = CACHE_PREFIX + "endpoint." + ep.getIndex() + ".cached_at";
+                    user.setSingleAttribute(cachedAtKey, String.valueOf(now));
+                }
             } catch (Exception e) {
                 LOG.errorf(e, "Unexpected error collecting endpoint result");
             }
         }
 
-        return claims;
-    }
-
-    // ── Per-endpoint logic ────────────────────────────────────────────────────
-
-    private static Map<String, Object> fetchForEndpoint(
-            EndpointConfig ep,
-            UserModel user,
-            Map<String, String> userContext,
-            long now,
-            long ttlSeconds) {
-
-        Map<String, Object> result = new HashMap<>();
-        String cachedAtKey = CACHE_PREFIX + "endpoint." + ep.getIndex() + ".cached_at";
-
-        // Check TTL
-        List<String> cachedAtValues = user.getAttributeStream(cachedAtKey).toList();
-        if (!cachedAtValues.isEmpty()) {
-            try {
-                long cachedAt = Long.parseLong(cachedAtValues.get(0));
-                if ((now - cachedAt) < ttlSeconds) {
-                    // Within TTL — read from user attributes
-                    LOG.debugf("Cache hit for endpoint %d, user %s", ep.getIndex(), user.getId());
-                    return readFromCache(user, ep);
-                }
-            } catch (NumberFormatException ignored) {
-                // Corrupt cache — re-fetch
-            }
-        }
-
-        // Cache miss or stale — fetch from REST API
-        LOG.debugf("Cache miss for endpoint %d, user %s — fetching from REST API",
-                ep.getIndex(), user.getId());
-
-        Map<String, String> scriptVars = buildScriptVars(ep, userContext);
-        String queryString = QueryScriptEvaluator.evaluate(ep.getQueryScript(), scriptVars);
-        String rawJson = RestApiClient.getInstance().fetchJson(ep, queryString);
-
-        if (rawJson == null) {
-            LOG.warnf("Endpoint %d returned no data for user %s", ep.getIndex(), user.getId());
-            return result;
-        }
-
-        Map<String, Object> mapped = JsonPathMapper.map(rawJson, ep.getMappingRules());
-
-        // Persist to UserModel attributes
-        for (Map.Entry<String, Object> entry : mapped.entrySet()) {
-            String attrKey = CACHE_PREFIX + entry.getKey();
-            Object val = entry.getValue();
-            if (val instanceof List<?> list) {
-                user.setAttribute(attrKey, list.stream().map(Object::toString).toList());
-            } else {
-                user.setSingleAttribute(attrKey, val.toString());
-            }
-            result.put(entry.getKey(), val);
-        }
-
-        // Update cached_at timestamp
-        user.setSingleAttribute(cachedAtKey, String.valueOf(now));
-
-        return result;
+        return finalClaims;
     }
 
     /** Reads cached claims from UserModel attributes. */
