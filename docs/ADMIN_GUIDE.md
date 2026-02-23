@@ -154,6 +154,40 @@ curl -s -X POST \
 
 ---
 
+## GraphQL (Apollo) Example
+
+The `RestClaimMapper` makes HTTP GET requests by default, but you can send GraphQL queries to an Apollo Server. Apollo accepts GET requests if the query is in the URL and the `apollo-require-preflight` header is present (which this mapper sends automatically).
+
+### Scenario
+
+You want to run this GraphQL query, injecting the user's `username`:
+
+```graphql
+query {
+  ldapUser(uid: "jdoe") {
+    cn
+    mail
+    memberOf
+    title
+  }
+}
+```
+
+### Mapper Configuration
+
+To achieve this, configure `query.script` to build a valid GraphQL GET query string.
+
+| Key | Value |
+|---|---|
+| `endpoint.1.url` | `https://api.example.com/graphql` |
+| `endpoint.1.query.param.1` | `username` |
+| `endpoint.1.query.script` | `"?query={ldapUser(uid:\\\"" + username + "\\\"){cn mail memberOf title}}"` |
+| `endpoint.1.mapping` | `$.data.ldapUser.title→job_title, $.data.ldapUser.memberOf→groups` |
+
+*Note the strict escaping of quotes `\"` inside the JavaScript string.*
+
+---
+
 ## Full Example
 
 ### Scenario
