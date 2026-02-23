@@ -41,6 +41,15 @@ All clients that include this scope will now receive the enriched claims.
 
 ---
 
+## Architecture Rationale: Multi-Endpoint vs. Multiple Mappers
+
+While it may seem cleaner in the UI to create 3 separate `REST Attribute Enrichment` mappers—each configured with 1 endpoint—it is **highly recommended** to configure all your endpoints inside a *single* mapper instance.
+
+1. **Parallel Execution (Performance)**: Keycloak executes separate protocol mappers *sequentially*. If you have 3 separate mappers that each take 200ms, the user login will be delayed by 600ms. If you configure all 3 endpoints in a *single* mapper instance, this mapper executes them asynchronously in **parallel**. The total delay is only ~200ms.
+2. **Unified Caching**: For persistent users, configuring multiple endpoints in one mapper ensures all fetched attributes share a single TTL timer in the Keycloak database. Separate mappers would result in fragmented cache expirations and redundant database writes.
+
+---
+
 ## Configuration Reference
 
 ### General Settings

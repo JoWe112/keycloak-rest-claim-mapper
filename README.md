@@ -7,7 +7,7 @@ A **Keycloak 26.x custom OIDC Protocol Mapper** that enriches federated users wi
 - 🔌 Works with **any existing federation** (LDAP, AD, or any User Storage SPI)
 - 🔄 **Persistent users** (imported): attributes are cached in `UserModel` with a configurable TTL; re-fetched automatically when stale
 - ⚡ **Transient users** (non-imported): attributes fetched live at every token issuance
-- 🌐 Up to **3 configurable REST API endpoints** called in parallel
+- 🌐 Up to **3 configurable REST API endpoints** executed in *parallel* (significantly faster than configuring multiple separate Keycloak mappers)
 - 🔐 Supports **API key**, **Basic Auth**, and **OAuth2 client credentials** authentication
 - 📜 **GraalVM Polyglot JS** for dynamic query string construction (`query.script`)
 - 🗂️ **JSONPath** (Jayway) and plain field mapping to OIDC claims
