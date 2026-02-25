@@ -4,6 +4,8 @@ import org.jboss.logging.Logger;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Map;
 
@@ -24,6 +26,7 @@ import java.util.Map;
 public final class QueryScriptEvaluator {
 
     private static final Logger LOG = Logger.getLogger(QueryScriptEvaluator.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private QueryScriptEvaluator() {
     }
@@ -47,9 +50,15 @@ public final class QueryScriptEvaluator {
         // allowAllAccess.
         StringBuilder fullScript = new StringBuilder();
         for (Map.Entry<String, String> entry : variables.entrySet()) {
-            String escapedValue = entry.getValue().replace("\\", "\\\\").replace("\"", "\\\"");
-            fullScript.append("var ").append(entry.getKey())
-                    .append(" = \"").append(escapedValue).append("\";\n");
+            try {
+                // writeValueAsString adds the surrounding quotes and safely escapes
+                // all control characters, newlines, and quotes as a valid JSON (and JS) string.
+                String escapedValue = MAPPER.writeValueAsString(entry.getValue());
+                fullScript.append("var ").append(entry.getKey())
+                        .append(" = ").append(escapedValue).append(";\n");
+            } catch (JsonProcessingException e) {
+                LOG.errorf(e, "Failed to serialize JS parameter %s", entry.getKey());
+            }
         }
         fullScript.append(script);
 
