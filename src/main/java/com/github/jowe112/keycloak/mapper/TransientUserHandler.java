@@ -23,7 +23,10 @@ public final class TransientUserHandler {
 
     private static final Logger LOG = Logger.getLogger(TransientUserHandler.class);
 
-    private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool(r -> {
+    // Use a fixed thread pool to prevent thread exhaustion if the REST API is slow
+    private static final int MAX_CONCURRENT_REQUESTS = 50;
+
+    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(MAX_CONCURRENT_REQUESTS, r -> {
         Thread t = new Thread(r, "rest-claim-mapper-transient-worker");
         t.setDaemon(true);
         return t;
