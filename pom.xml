@@ -130,6 +130,14 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- Override json-smart to fix CVE-2024-57699 (transitive from json-path) -->
+        <dependency>
+            <groupId>net.minidev</groupId>
+            <artifactId>json-smart</artifactId>
+            <version>2.5.2</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- ===================== SLF4J API (JSONPath transitive dep) ======== -->
         <dependency>
             <groupId>org.slf4j</groupId>
