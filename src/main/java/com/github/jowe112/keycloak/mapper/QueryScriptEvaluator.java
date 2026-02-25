@@ -47,7 +47,11 @@ public final class QueryScriptEvaluator {
         // allowAllAccess.
         StringBuilder fullScript = new StringBuilder();
         for (Map.Entry<String, String> entry : variables.entrySet()) {
-            String escapedValue = entry.getValue().replace("\\", "\\\\").replace("\"", "\\\"");
+            String escapedValue = entry.getValue()
+                    .replace("\\", "\\\\") // escape backslashes first
+                    .replace("\"", "\\\"") // escape quotes
+                    .replace("\n", "\\n") // escape newlines to prevent JS syntax errors
+                    .replace("\r", "\\r"); // escape carriage returns
             fullScript.append("var ").append(entry.getKey())
                     .append(" = \"").append(escapedValue).append("\";\n");
         }
