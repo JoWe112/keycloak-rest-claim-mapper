@@ -9,7 +9,7 @@
 ## Build
 
 ```bash
-git clone https://gitlab.com/JoWe112/kc-rest-claim-mapper.git
+git clone https://github.com/JoWe112/keycloak-rest-claim-mapper.git kc-rest-claim-mapper
 cd kc-rest-claim-mapper
 mvn clean package -q
 ```
