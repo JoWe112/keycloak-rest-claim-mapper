@@ -13,9 +13,9 @@ import java.util.Map;
  * Config keys follow the convention:
  * 
  * <pre>
- *   endpoint.count              — integer, how many endpoints are active (1-5)
+ *   endpoint.count              — integer, how many endpoints are active (1-3)
  *   endpoint.N.url
- *   endpoint.N.auth.type        — "apikey" | "oauth2"
+ *   endpoint.N.auth.type        — "apikey" | "basic" | "oauth2"
  *   endpoint.N.auth.value
  *   endpoint.N.query.param.K   — K in 1..5; value is a Keycloak user context field name
  *   endpoint.N.query.script
