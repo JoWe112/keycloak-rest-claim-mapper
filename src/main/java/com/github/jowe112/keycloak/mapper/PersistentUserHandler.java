@@ -34,7 +34,10 @@ public final class PersistentUserHandler {
     /** Attribute prefix used for all cache keys written to UserModel. */
     public static final String CACHE_PREFIX = "rest_claim_mapper.";
 
-    private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool(r -> {
+    // Use a fixed thread pool to prevent thread exhaustion if the REST API is slow
+    private static final int MAX_CONCURRENT_REQUESTS = 50;
+
+    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(MAX_CONCURRENT_REQUESTS, r -> {
         Thread t = new Thread(r, "rest-claim-mapper-worker");
         t.setDaemon(true);
         return t;
