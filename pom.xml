@@ -34,7 +34,7 @@
         <jackson.version>2.21.1</jackson.version>
 
         <!-- Jayway JSONPath -->
-        <jsonpath.version>2.9.0</jsonpath.version>
+        <jsonpath.version>3.0.0</jsonpath.version>
 
         <!-- GraalVM SDK — provided; KC 26 Quarkus ships on GraalVM JDK -->
         <graalvm.version>25.0.2</graalvm.version>
