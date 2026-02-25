@@ -102,7 +102,10 @@ role→user_role,department→user_dept,$.profile.groups[0]→first_group
 
 The mapper registers a realm-scoped REST endpoint to test your config without a real login:
 
-> **Note on Logging**: The Test Query Panel executes the API requests completely in isolation. It does **not** trigger the full token generation lifecycle. Therefore, **you will not see any `DEBUG` logs** from your `com.github.jowe112.keycloak` package in the server console when hitting this endpoint. To see logs, you must perform a real user login flow (e.g., using Postman or an app).
+> **Note on Testing**: The Test Query Panel executes the API requests completely in isolation. It does **not** trigger the full token generation lifecycle. Therefore:
+> 1. **No Logs**: You will not see any `DEBUG` logs from your `com.github.jowe112.keycloak` package in the server console when hitting this endpoint. 
+> 2. **No Caching**: Fetched attributes are **never** cached or saved to the actual Keycloak `UserModel` in the database during a test query.
+> To see logs and cache behavior, you must perform a real user login flow (e.g., using Postman or an app).
 
 ```
 POST /realms/{realm}/rest-claim-mapper/test-query
