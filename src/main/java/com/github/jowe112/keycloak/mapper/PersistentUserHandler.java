@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Handles attribute enrichment for <strong>persistent</strong> (imported)
@@ -118,9 +120,11 @@ public final class PersistentUserHandler {
 
         // Wait for all fetch tasks and write results to the UserModel sequentially on
         // the main thread
+        // We enforce a hard timeout (10 seconds) so we never block Keycloak token
+        // issuance indefinitely
         for (CompletableFuture<EndpointFetchResult> future : fetchTasks) {
             try {
-                EndpointFetchResult result = future.join();
+                EndpointFetchResult result = future.get(10, TimeUnit.SECONDS);
                 Map<String, Object> mappedClaims = result.claims();
                 EndpointConfig ep = result.endpoint();
 
@@ -143,6 +147,8 @@ public final class PersistentUserHandler {
                     String cachedAtKey = CACHE_PREFIX + "endpoint." + ep.getIndex() + ".cached_at";
                     user.setSingleAttribute(cachedAtKey, String.valueOf(now));
                 }
+            } catch (TimeoutException e) {
+                LOG.errorf(e, "Endpoint fetch timed out after 10 seconds for user %s", user.getId());
             } catch (Exception e) {
                 LOG.errorf(e, "Unexpected error collecting endpoint result");
             }

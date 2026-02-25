@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Handles attribute enrichment for <strong>transient</strong> (non-imported)
@@ -52,7 +54,11 @@ public final class TransientUserHandler {
 
         for (CompletableFuture<Map<String, Object>> future : futures) {
             try {
-                claims.putAll(future.join());
+                // Enforce a hard 10-second timeout so token issuance is never blocked
+                // indefinitely
+                claims.putAll(future.get(10, TimeUnit.SECONDS));
+            } catch (TimeoutException e) {
+                LOG.errorf(e, "Transient: endpoint fetch timed out after 10 seconds");
             } catch (Exception e) {
                 LOG.errorf(e, "Transient: unexpected error collecting endpoint result");
             }
