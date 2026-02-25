@@ -1,6 +1,7 @@
 package com.github.jowe112.keycloak.mapper;
 
 import org.jboss.logging.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.List;
@@ -43,9 +44,9 @@ public final class TransientUserHandler {
      * @param userContext map of user context fields (sub, email, username, …)
      * @return merged map of claim name → value (String or List&lt;String&gt;)
      */
-    public static Map<String, Object> fetchLive(
-            List<EndpointConfig> endpoints,
-            Map<String, String> userContext) {
+    public static @NotNull Map<String, Object> fetchLive(
+            @NotNull List<EndpointConfig> endpoints,
+            @NotNull Map<String, String> userContext) {
 
         Map<String, Object> claims = new HashMap<>();
 
@@ -72,9 +73,9 @@ public final class TransientUserHandler {
 
     // ── Per-endpoint logic ────────────────────────────────────────────────────
 
-    private static Map<String, Object> fetchForEndpoint(
-            EndpointConfig ep,
-            Map<String, String> userContext) {
+    private static @NotNull Map<String, Object> fetchForEndpoint(
+            @NotNull EndpointConfig ep,
+            @NotNull Map<String, String> userContext) {
 
         Map<String, String> scriptVars = new HashMap<>();
         for (String param : ep.getQueryParams()) {

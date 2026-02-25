@@ -1,6 +1,8 @@
 package com.github.jowe112.keycloak.mapper;
 
 import org.jboss.logging.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +45,7 @@ public final class ConfigParser {
      * @return list of resolved, configured endpoints (may be empty if nothing is
      *         set)
      */
-    public static List<EndpointConfig> parse(Map<String, String> config) {
+    public static @NotNull List<EndpointConfig> parse(@NotNull Map<String, String> config) {
         List<EndpointConfig> endpoints = new ArrayList<>();
 
         int endpointCount = parseIntOrDefault(config.get("endpoint.count"), MAX_ENDPOINTS);
@@ -81,7 +83,7 @@ public final class ConfigParser {
      * Each entry must be of the form {@code apiField→claimName} or
      * {@code apiField->claimName}.
      */
-    public static List<MappingRule> parseMappingRules(String mapping) {
+    public static @NotNull List<MappingRule> parseMappingRules(@Nullable String mapping) {
         List<MappingRule> rules = new ArrayList<>();
         if (mapping == null || mapping.isBlank()) {
             return rules;
@@ -108,7 +110,7 @@ public final class ConfigParser {
         return rules;
     }
 
-    private static int parseIntOrDefault(String value, int defaultValue) {
+    private static int parseIntOrDefault(@Nullable String value, int defaultValue) {
         if (value == null || value.isBlank())
             return defaultValue;
         try {

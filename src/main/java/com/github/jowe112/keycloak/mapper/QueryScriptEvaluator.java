@@ -6,6 +6,8 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
@@ -39,7 +41,7 @@ public final class QueryScriptEvaluator {
      * @param variables map of variable name → string value to inject as JS bindings
      * @return the string result of the expression, or {@code ""} on error
      */
-    public static String evaluate(String script, Map<String, String> variables) {
+    public static @NotNull String evaluate(@Nullable String script, @NotNull Map<String, String> variables) {
         if (script == null || script.isBlank()) {
             return "";
         }

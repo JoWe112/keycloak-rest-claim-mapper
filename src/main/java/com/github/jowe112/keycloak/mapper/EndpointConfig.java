@@ -3,6 +3,9 @@ package com.github.jowe112.keycloak.mapper;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Represents the parsed configuration for a single numbered REST endpoint.
  * <p>
@@ -54,9 +57,9 @@ public final class EndpointConfig {
     /** 1-based endpoint index; used for cache-key namespacing. */
     private final int index;
 
-    public EndpointConfig(int index, String url, String authType, String authValue,
-            List<String> queryParams, String queryScript,
-            List<MappingRule> mappingRules) {
+    public EndpointConfig(int index, @Nullable String url, @NotNull String authType, @Nullable String authValue,
+            @NotNull List<String> queryParams, @Nullable String queryScript,
+            @NotNull List<MappingRule> mappingRules) {
         this.index = index;
         this.url = url;
         this.authType = authType;
@@ -70,27 +73,27 @@ public final class EndpointConfig {
         return index;
     }
 
-    public String getUrl() {
+    public @Nullable String getUrl() {
         return url;
     }
 
-    public String getAuthType() {
+    public @NotNull String getAuthType() {
         return authType;
     }
 
-    public String getAuthValue() {
+    public @Nullable String getAuthValue() {
         return authValue;
     }
 
-    public List<String> getQueryParams() {
+    public @NotNull List<String> getQueryParams() {
         return queryParams;
     }
 
-    public String getQueryScript() {
+    public @Nullable String getQueryScript() {
         return queryScript;
     }
 
-    public List<MappingRule> getMappingRules() {
+    public @NotNull List<MappingRule> getMappingRules() {
         return mappingRules;
     }
 
