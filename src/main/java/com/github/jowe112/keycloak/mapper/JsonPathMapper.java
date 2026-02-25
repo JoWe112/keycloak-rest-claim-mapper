@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import org.jboss.logging.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +36,7 @@ public final class JsonPathMapper {
      * @param mappingRules the ordered list of field→claim rules
      * @return a map of {@code claimName → value} (String or List&lt;String&gt;)
      */
-    public static Map<String, Object> map(String rawJson, List<MappingRule> mappingRules) {
+    public static @NotNull Map<String, Object> map(@Nullable String rawJson, @Nullable List<MappingRule> mappingRules) {
         Map<String, Object> claims = new HashMap<>();
 
         if (rawJson == null || rawJson.isBlank() || mappingRules == null || mappingRules.isEmpty()) {
@@ -71,14 +73,14 @@ public final class JsonPathMapper {
 
     // -------------------------------------------------------------------------
 
-    private static Object resolveSimpleField(JsonNode root, String fieldName) {
+    private static @Nullable Object resolveSimpleField(@NotNull JsonNode root, @NotNull String fieldName) {
         JsonNode node = root.get(fieldName);
         if (node == null || node.isNull())
             return null;
         return nodeToValue(node);
     }
 
-    private static Object resolveJsonPath(String rawJson, String expression) {
+    private static @Nullable Object resolveJsonPath(@NotNull String rawJson, @NotNull String expression) {
         try {
             Object value = JsonPath.read(rawJson, expression);
             if (value == null)
@@ -97,7 +99,7 @@ public final class JsonPathMapper {
         }
     }
 
-    private static Object nodeToValue(JsonNode node) {
+    private static @Nullable Object nodeToValue(@NotNull JsonNode node) {
         if (node.isArray()) {
             List<String> list = new ArrayList<>();
             for (JsonNode element : node) {

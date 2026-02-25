@@ -2,6 +2,7 @@ package com.github.jowe112.keycloak.mapper;
 
 import org.jboss.logging.Logger;
 import org.keycloak.models.UserModel;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -52,7 +53,8 @@ public final class PersistentUserHandler {
 
     // Holds the result from the background HTTP request so we can apply it safely
     // on the main thread
-    private record EndpointFetchResult(EndpointConfig endpoint, Map<String, Object> claims, boolean success) {
+    private record EndpointFetchResult(@NotNull EndpointConfig endpoint, @NotNull Map<String, Object> claims,
+            boolean success) {
     }
 
     /**
@@ -64,10 +66,10 @@ public final class PersistentUserHandler {
      * @param ttlSeconds  cache TTL in seconds
      * @return merged map of claim name → value
      */
-    public static Map<String, Object> fetchAndCache(
-            UserModel user,
-            List<EndpointConfig> endpoints,
-            Map<String, String> userContext,
+    public static @NotNull Map<String, Object> fetchAndCache(
+            @NotNull UserModel user,
+            @NotNull List<EndpointConfig> endpoints,
+            @NotNull Map<String, String> userContext,
             long ttlSeconds) {
 
         Map<String, Object> finalClaims = new HashMap<>();
@@ -161,7 +163,7 @@ public final class PersistentUserHandler {
     }
 
     /** Reads cached claims from UserModel attributes. */
-    private static Map<String, Object> readFromCache(UserModel user, EndpointConfig ep) {
+    private static @NotNull Map<String, Object> readFromCache(@NotNull UserModel user, @NotNull EndpointConfig ep) {
         Map<String, Object> result = new HashMap<>();
         for (MappingRule rule : ep.getMappingRules()) {
             String attrKey = CACHE_PREFIX + rule.getClaimName();
@@ -174,8 +176,8 @@ public final class PersistentUserHandler {
     }
 
     /** Builds variable map for the query script from userContext. */
-    private static Map<String, String> buildScriptVars(EndpointConfig ep,
-            Map<String, String> userContext) {
+    private static @NotNull Map<String, String> buildScriptVars(@NotNull EndpointConfig ep,
+            @NotNull Map<String, String> userContext) {
         Map<String, String> vars = new HashMap<>();
         for (String param : ep.getQueryParams()) {
             vars.put(param, userContext.getOrDefault(param, ""));

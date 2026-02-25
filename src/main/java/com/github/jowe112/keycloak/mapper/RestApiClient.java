@@ -14,6 +14,8 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.hc.core5.util.Timeout;
 import org.jboss.logging.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -86,7 +88,7 @@ public final class RestApiClient {
                 .build();
     }
 
-    public static RestApiClient getInstance() {
+    public static @NotNull RestApiClient getInstance() {
         if (INSTANCE == null) {
             synchronized (RestApiClient.class) {
                 if (INSTANCE == null) {
@@ -104,7 +106,7 @@ public final class RestApiClient {
      *
      * @return raw JSON string, or {@code null} on error
      */
-    public String fetchJson(EndpointConfig endpoint, String queryString) {
+    public @Nullable String fetchJson(@NotNull EndpointConfig endpoint, @Nullable String queryString) {
         String url = endpoint.getUrl() + (queryString != null ? queryString : "");
         try {
             HttpGet request = new HttpGet(url);
@@ -132,7 +134,7 @@ public final class RestApiClient {
 
     // ── Auth helpers ──────────────────────────────────────────────────────────
 
-    private void applyAuth(EndpointConfig endpoint, HttpGet request) throws Exception {
+    private void applyAuth(@NotNull EndpointConfig endpoint, @NotNull HttpGet request) throws Exception {
         if ("oauth2".equalsIgnoreCase(endpoint.getAuthType())) {
             String token = resolveOAuth2Token(endpoint.getAuthValue());
             if (token != null) {
@@ -157,7 +159,7 @@ public final class RestApiClient {
      *
      * @param authValue format: {@code clientId:clientSecret:tokenUrl}
      */
-    private String resolveOAuth2Token(String authValue) throws Exception {
+    private @Nullable String resolveOAuth2Token(@NotNull String authValue) throws Exception {
         CachedToken cached = tokenCache.get(authValue);
         if (cached != null && cached.isValid()) {
             return cached.token;

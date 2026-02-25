@@ -145,6 +145,13 @@
             <version>2.0.13</version>
             <scope>compile</scope>
         </dependency>
+        <!-- ===================== Annotations ================================ -->
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>24.1.0</version>
+            <scope>provided</scope>
+        </dependency>
 
     </dependencies>
 

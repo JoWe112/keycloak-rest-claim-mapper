@@ -8,6 +8,9 @@ import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.IDToken;
 import org.keycloak.representations.JsonWebToken;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.*;
 
 /**
@@ -120,61 +123,61 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
     // ── AbstractOIDCProtocolMapper overrides ──────────────────────────────────
 
     @Override
-    public String getId() {
+    public @NotNull String getId() {
         return PROVIDER_ID;
     }
 
     @Override
-    public String getDisplayType() {
+    public @NotNull String getDisplayType() {
         return DISPLAY_TYPE;
     }
 
     @Override
-    public String getDisplayCategory() {
+    public @NotNull String getDisplayCategory() {
         return DISPLAY_CATEGORY;
     }
 
     @Override
-    public String getHelpText() {
+    public @NotNull String getHelpText() {
         return "Enriches tokens with attributes fetched from one or more external REST APIs. "
                 + "Works for any federation (LDAP, AD, etc.) and supports both persistent "
                 + "(imported) and transient (non-imported) users.";
     }
 
     @Override
-    public List<ProviderConfigProperty> getConfigProperties() {
+    public @NotNull List<ProviderConfigProperty> getConfigProperties() {
         return CONFIG_PROPERTIES;
     }
 
     // ── Token transformation entry points ─────────────────────────────────────
 
     @Override
-    public AccessToken transformAccessToken(AccessToken token,
-            ProtocolMapperModel mappingModel,
-            KeycloakSession session,
-            UserSessionModel userSession,
-            ClientSessionContext clientSessionCtx) {
+    public @NotNull AccessToken transformAccessToken(@NotNull AccessToken token,
+            @NotNull ProtocolMapperModel mappingModel,
+            @NotNull KeycloakSession session,
+            @NotNull UserSessionModel userSession,
+            @Nullable ClientSessionContext clientSessionCtx) {
         addClaims(token, mappingModel, userSession);
         return token;
     }
 
     @Override
-    public IDToken transformIDToken(IDToken token,
-            ProtocolMapperModel mappingModel,
-            KeycloakSession session,
-            UserSessionModel userSession,
-            ClientSessionContext clientSessionCtx) {
+    public @NotNull IDToken transformIDToken(@NotNull IDToken token,
+            @NotNull ProtocolMapperModel mappingModel,
+            @NotNull KeycloakSession session,
+            @NotNull UserSessionModel userSession,
+            @Nullable ClientSessionContext clientSessionCtx) {
         // IDToken extends AccessToken so we can pass it directly
         addClaims(token, mappingModel, userSession);
         return token;
     }
 
     @Override
-    public AccessToken transformUserInfoToken(AccessToken token,
-            ProtocolMapperModel mappingModel,
-            KeycloakSession session,
-            UserSessionModel userSession,
-            ClientSessionContext clientSessionCtx) {
+    public @NotNull AccessToken transformUserInfoToken(@NotNull AccessToken token,
+            @NotNull ProtocolMapperModel mappingModel,
+            @NotNull KeycloakSession session,
+            @NotNull UserSessionModel userSession,
+            @Nullable ClientSessionContext clientSessionCtx) {
         addClaims(token, mappingModel, userSession);
         return token;
     }
@@ -186,9 +189,9 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
      * Works for AccessToken, IDToken (both extend JsonWebToken which has
      * getOtherClaims).
      */
-    private void addClaims(JsonWebToken token,
-            ProtocolMapperModel mappingModel,
-            UserSessionModel userSession) {
+    private void addClaims(@NotNull JsonWebToken token,
+            @NotNull ProtocolMapperModel mappingModel,
+            @NotNull UserSessionModel userSession) {
         try {
             Map<String, String> config = mappingModel.getConfig();
             List<EndpointConfig> endpoints = ConfigParser.parse(config);
@@ -222,7 +225,7 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
     /**
      * Writes claim values into the token's other claims map.
      */
-    private void setClaims(JsonWebToken token, Map<String, Object> claims) {
+    private void setClaims(@NotNull JsonWebToken token, @NotNull Map<String, Object> claims) {
         for (Map.Entry<String, Object> entry : claims.entrySet()) {
             token.getOtherClaims().put(entry.getKey(), entry.getValue());
         }
@@ -234,7 +237,8 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
      * Builds a flat map of Keycloak user context fields that can be
      * referenced by query scripts.
      */
-    private Map<String, String> buildUserContext(UserModel user, UserSessionModel userSession) {
+    private @NotNull Map<String, String> buildUserContext(@NotNull UserModel user,
+            @NotNull UserSessionModel userSession) {
         Map<String, String> ctx = new HashMap<>();
         // Standard OIDC claims
         ctx.put("sub", user.getId());
@@ -257,7 +261,7 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
      * Returns true if the user is a persistent (locally imported) user.
      * Transient users have no ID in the local DB.
      */
-    private boolean isPersistentUser(UserModel user) {
+    private boolean isPersistentUser(@NotNull UserModel user) {
         // A user coming from federation-without-import has no local Keycloak storage;
         // StorageId.isLocalStorage() checks if the ID is a plain UUID (local storage).
         try {
@@ -271,11 +275,11 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
 
     // ── Utility helpers ───────────────────────────────────────────────────────
 
-    private static String nvl(String s) {
+    private static @NotNull String nvl(@Nullable String s) {
         return s != null ? s : "";
     }
 
-    private static long parseLongOrDefault(String value, long defaultValue) {
+    private static long parseLongOrDefault(@Nullable String value, long defaultValue) {
         if (value == null || value.isBlank())
             return defaultValue;
         try {
@@ -285,9 +289,9 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
         }
     }
 
-    private static ProviderConfigProperty cfgProp(String name, String label,
-            String helpText, String type,
-            String defaultValue) {
+    private static @NotNull ProviderConfigProperty cfgProp(@NotNull String name, @NotNull String label,
+            @Nullable String helpText, @NotNull String type,
+            @Nullable String defaultValue) {
         ProviderConfigProperty p = new ProviderConfigProperty();
         p.setName(name);
         p.setLabel(label);
@@ -297,10 +301,10 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
         return p;
     }
 
-    private static ProviderConfigProperty cfgProp(String name, String label,
-            String helpText, String type,
-            String defaultValue,
-            List<String> options) {
+    private static @NotNull ProviderConfigProperty cfgProp(@NotNull String name, @NotNull String label,
+            @Nullable String helpText, @NotNull String type,
+            @Nullable String defaultValue,
+            @NotNull List<String> options) {
         ProviderConfigProperty p = cfgProp(name, label, helpText, type, defaultValue);
         p.setOptions(options);
         return p;
