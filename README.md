@@ -1,4 +1,4 @@
-# kc-rest-claim-mapper
+# keycloak-rest-claim-mapper
 
 A **Keycloak 26.x custom OIDC Protocol Mapper** that enriches federated users with attributes fetched from one or more external REST APIs at token issuance time.
 
@@ -22,12 +22,12 @@ A **Keycloak 26.x custom OIDC Protocol Mapper** that enriches federated users wi
 mvn clean package
 ```
 
-This produces `target/kc-rest-claim-mapper-1.0.0.jar` (a shaded fat JAR with all dependencies).
+This produces `target/keycloak-rest-claim-mapper-1.0.0.jar` (a shaded fat JAR with all dependencies).
 
 ### 2. Deploy
 
 ```bash
-cp target/kc-rest-claim-mapper-1.0.0.jar /opt/keycloak/providers/
+cp target/keycloak-rest-claim-mapper-1.0.0.jar /opt/keycloak/providers/
 /opt/keycloak/bin/kc.sh build
 /opt/keycloak/bin/kc.sh start
 ```
@@ -91,7 +91,3 @@ src/main/resources/META-INF/services/
 - Keycloak **26.x** (Quarkus distribution, GraalVM JDK)
 - Java **21**
 - Maven **3.9+**
-
-## License
-
-MIT
