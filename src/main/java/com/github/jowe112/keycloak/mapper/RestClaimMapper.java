@@ -51,6 +51,7 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
 
     // Properties are sourced from shared RestMapperConfig
 
+
     // ── AbstractOIDCProtocolMapper overrides ──────────────────────────────────
 
     @Override
