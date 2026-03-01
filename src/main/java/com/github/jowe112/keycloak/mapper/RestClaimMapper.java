@@ -77,6 +77,14 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
         for (int n = 1; n <= ConfigParser.MAX_ENDPOINTS; n++) {
             final String prefix = "endpoint." + n;
 
+            if (n > 1) {
+                props.add(cfgProp(prefix + ".separator",
+                        "─── ENDPOINT " + n + " ───",
+                        "Configuration section for Endpoint " + n,
+                        ProviderConfigProperty.STRING_TYPE,
+                        "⬇️ Configure below ⬇️"));
+            }
+
             props.add(cfgProp(prefix + ".url",
                     "Endpoint " + n + ": URL",
                     "Base URL of REST API #" + n + ". Leave blank to disable this slot.",
