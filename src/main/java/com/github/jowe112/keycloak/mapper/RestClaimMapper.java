@@ -108,7 +108,7 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
                     "JavaScript expression (GraalVM) that builds the query string. "
                             + "Declared query params are available as variables. "
                             + "Example: \"?user=\" + username + \"&mail=\" + email",
-                    ProviderConfigProperty.SCRIPT_TYPE, "\"\""));
+                    ProviderConfigProperty.TEXT_TYPE, "\"\""));
 
             props.add(cfgProp(prefix + ".mapping",
                     "Endpoint " + n + ": Claim Mapping",

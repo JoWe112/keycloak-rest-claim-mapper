@@ -31,7 +31,7 @@
         <httpclient5.version>5.6</httpclient5.version>
 
         <!-- Jackson -->
-        <jackson.version>2.21.1</jackson.version>
+        <jackson.version>2.19.2</jackson.version>
 
         <!-- Jayway JSONPath -->
         <jsonpath.version>3.0.0</jsonpath.version>
@@ -118,6 +118,18 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
             <version>${jackson.version}</version>
             <scope>compile</scope>
         </dependency>
@@ -226,7 +238,11 @@
                             <!-- Merge SPI service files from all bundled deps -->
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Multi-Release>true</Multi-Release>
+                                    </manifestEntries>
+                                </transformer>
                             </transformers>
                         </configuration>
                     </execution>
