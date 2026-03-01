@@ -68,6 +68,7 @@ public final class PersistentUserHandler {
      */
     public static @NotNull Map<String, Object> fetchAndCache(
             @NotNull UserModel user,
+            @NotNull String mapperId,
             @NotNull List<EndpointConfig> endpoints,
             @NotNull Map<String, String> userContext,
             long ttlSeconds) {
@@ -81,21 +82,24 @@ public final class PersistentUserHandler {
                 continue;
             }
 
-            String cachedAtKey = CACHE_PREFIX + "endpoint." + ep.getIndex() + ".cached_at";
+            String cachedAtKey = CACHE_PREFIX + mapperId + ".ep" + ep.getIndex() + ".cached_at";
             List<String> cachedAtValues = user.getAttributeStream(cachedAtKey).toList();
             boolean cacheHit = false;
 
             if (!cachedAtValues.isEmpty()) {
                 try {
-                    long cachedAt = Long.parseLong(cachedAtValues.get(0));
-                    if ((now - cachedAt) < ttlSeconds) {
-                        // Within TTL — read from user attributes
+                    String[] parts = cachedAtValues.get(0).split("\\|");
+                    long cachedAt = Long.parseLong(parts[0]);
+                    String cachedHash = parts.length > 1 ? parts[1] : "";
+
+                    if ((now - cachedAt) < ttlSeconds && cachedHash.equals(ep.getConfigHash())) {
+                        // Within TTL and config hash matches — read from user attributes
                         LOG.debugf("Cache hit for endpoint %d, user %s", ep.getIndex(), user.getId());
-                        Map<String, Object> cachedClaims = readFromCache(user, ep);
+                        Map<String, Object> cachedClaims = readFromCache(user, mapperId, ep);
                         finalClaims.putAll(cachedClaims);
                         cacheHit = true;
                     }
-                } catch (NumberFormatException ignored) {
+                } catch (NumberFormatException | IndexOutOfBoundsException ignored) {
                     // Corrupt cache — re-fetch
                 }
             }
@@ -139,7 +143,7 @@ public final class PersistentUserHandler {
                     // Persist to Keycloak UserModel attributes (JPA requires an active transaction)
                     // This MUST run on the main thread
                     for (Map.Entry<String, Object> entry : mappedClaims.entrySet()) {
-                        String attrKey = CACHE_PREFIX + entry.getKey();
+                        String attrKey = CACHE_PREFIX + mapperId + "." + entry.getKey();
                         Object val = entry.getValue();
                         if (val instanceof List<?> list) {
                             user.setAttribute(attrKey, list.stream().map(Object::toString).toList());
@@ -148,9 +152,10 @@ public final class PersistentUserHandler {
                         }
                     }
 
-                    // Update cached_at timestamp
-                    String cachedAtKey = CACHE_PREFIX + "endpoint." + ep.getIndex() + ".cached_at";
-                    user.setSingleAttribute(cachedAtKey, String.valueOf(now));
+                    // Update cached_at timestamp with the config hash
+                    String cachedAtKey = CACHE_PREFIX + mapperId + ".ep" + ep.getIndex() + ".cached_at";
+                    String cacheValue = now + "|" + ep.getConfigHash();
+                    user.setSingleAttribute(cachedAtKey, cacheValue);
                 }
             } catch (TimeoutException e) {
                 LOG.errorf(e, "Endpoint fetch timed out after 10 seconds for user %s", user.getId());
@@ -163,10 +168,11 @@ public final class PersistentUserHandler {
     }
 
     /** Reads cached claims from UserModel attributes. */
-    private static @NotNull Map<String, Object> readFromCache(@NotNull UserModel user, @NotNull EndpointConfig ep) {
+    private static @NotNull Map<String, Object> readFromCache(@NotNull UserModel user, @NotNull String mapperId,
+            @NotNull EndpointConfig ep) {
         Map<String, Object> result = new HashMap<>();
         for (MappingRule rule : ep.getMappingRules()) {
-            String attrKey = CACHE_PREFIX + rule.getClaimName();
+            String attrKey = CACHE_PREFIX + mapperId + "." + rule.getClaimName();
             List<String> values = user.getAttributeStream(attrKey).toList();
             if (!values.isEmpty()) {
                 result.put(rule.getClaimName(), values.size() == 1 ? values.get(0) : values);

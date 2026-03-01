@@ -15,22 +15,26 @@ All cache attributes are namespaced to avoid conflicts with real user attributes
 
 | Attribute key | Content |
 |---|---|
-| `rest_claim_mapper.<claimName>` | Cached claim value (String or multi-value) |
-| `rest_claim_mapper.endpoint.N.cached_at` | Epoch seconds of last fetch for endpoint N |
+| `rest_claim_mapper.<mapperId>.<claimName>` | Cached claim value (String or multi-value) |
+| `rest_claim_mapper.<mapperId>.ep<N>.cached_at` | `<epoch seconds>\|<configHash>` |
 
-## TTL Behaviour
+> **Note on `<mapperId>`**: Every instance of the REST Claim Mapper you create gets a unique UUID. This ensures that if you configure two different mappers on the same client, their cache keys will never collide.
+
+## TTL Behaviour & Instant Invalidation
 
 ```
 At token issuance:
   for each endpoint N:
-    read rest_claim_mapper.endpoint.N.cached_at
-    if missing OR (now - cached_at) >= cache.ttl.seconds:
+    read rest_claim_mapper.<mapperId>.ep<N>.cached_at
+    if missing OR (now - cached_at) >= cache.ttl.seconds OR configHash changed:
       → fetch from REST API
-      → store mapped values as rest_claim_mapper.<claimName>
-      → store rest_claim_mapper.endpoint.N.cached_at = now
+      → store mapped values as rest_claim_mapper.<mapperId>.<claimName>
+      → store rest_claim_mapper.<mapperId>.ep<N>.cached_at = "now|newHash"
     else:
-      → read values directly from rest_claim_mapper.<claimName>
+      → read values directly from rest_claim_mapper.<mapperId>.<claimName>
 ```
+
+**Instant Invalidation:** The mapper hashes its configuration (URL, Auth, Mapping Rules, etc.). If you change the endpoint settings in the Keycloak UI, the `<configHash>` changes, and the cache is immediately invalidated on the very next token issuance, bypassing the TTL.
 
 Default TTL is **300 seconds (5 minutes)**.
 
