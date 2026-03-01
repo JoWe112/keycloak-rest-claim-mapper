@@ -208,7 +208,7 @@ public class RestClaimMapper extends AbstractOIDCProtocolMapper
 
             Map<String, Object> claims;
             if (isPersistentUser(user)) {
-                claims = PersistentUserHandler.fetchAndCache(user, endpoints, userCtx, ttl);
+                claims = PersistentUserHandler.fetchAndCache(user, mappingModel.getId(), endpoints, userCtx, ttl);
             } else {
                 claims = TransientUserHandler.fetchLive(endpoints, userCtx);
             }

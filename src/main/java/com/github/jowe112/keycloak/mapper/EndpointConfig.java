@@ -103,4 +103,25 @@ public final class EndpointConfig {
     public boolean isConfigured() {
         return url != null && !url.isBlank();
     }
+
+    /**
+     * Returns a deterministic hash of this endpoint's configuration.
+     * This is used to invalidate the cache immediately if the admin
+     * changes the URL, mapping, script, or auth settings.
+     */
+    public @NotNull String getConfigHash() {
+        int hash = 17;
+        hash = 31 * hash + (url != null ? url.hashCode() : 0);
+        hash = 31 * hash + (authType != null ? authType.hashCode() : 0);
+        hash = 31 * hash + (authValue != null ? authValue.hashCode() : 0);
+        hash = 31 * hash + (queryScript != null ? queryScript.hashCode() : 0);
+        for (String p : queryParams) {
+            hash = 31 * hash + p.hashCode();
+        }
+        for (MappingRule r : mappingRules) {
+            hash = 31 * hash + r.getApiField().hashCode();
+            hash = 31 * hash + r.getClaimName().hashCode();
+        }
+        return Integer.toHexString(hash);
+    }
 }
