@@ -40,7 +40,7 @@
         <graalvm.version>25.0.2</graalvm.version>
 
         <!-- Shade plugin -->
-        <shade.plugin.version>3.6.0</shade.plugin.version>
+        <shade.plugin.version>3.6.1</shade.plugin.version>
     </properties>
 
     <dependencies>
