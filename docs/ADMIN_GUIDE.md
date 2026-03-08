@@ -180,16 +180,16 @@ query {
 
 ### Mapper Configuration
 
-To achieve this, configure `query.script` to build a valid GraphQL GET query string.
+To achieve this, configure `query.script` to build a valid GraphQL GET query string. Since the query spans multiple lines, you **must use JavaScript template literals (backticks)** instead of regular quotes. 
 
 | Key | Value |
 |---|---|
 | `endpoint.1.url` | `https://api.example.com/graphql` |
 | `endpoint.1.query.param.1` | `username` |
-| `endpoint.1.query.script` | `"?query={ldapUser(uid:\\\"" + username + "\\\"){cn mail memberOf title}}"` |
+| `endpoint.1.query.script` | <code>"?query=" + encodeURIComponent(&#96;query { ldapUser\n(uid: "${username}")\n { cn mail memberOf title } \n}&#96;)</code> |
 | `endpoint.1.mapping` | `$.data.ldapUser.title→job_title, $.data.ldapUser.memberOf→groups` |
 
-*Note the strict escaping of quotes `\"` inside the JavaScript string.*
+*Note how the template literal (the backticks `` ` ``) allows the query string to span multiple lines, and allows direct injection of JS variables with `${username}`.*
 
 ---
 
