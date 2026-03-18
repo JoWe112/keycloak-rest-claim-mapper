@@ -1,1 +1,2 @@
 com.github.jowe112.keycloak.mapper.RestClaimMapper
+com.github.jowe112.keycloak.mapper.SamlRestClaimMapper
