@@ -14,7 +14,7 @@ cd kc-rest-claim-mapper
 mvn clean package -q
 ```
 
-The output fat JAR is `target/kc-rest-claim-mapper-1.0.0.jar`.  
+The output fat JAR is `target/kc-rest-claim-mapper-1.1.0.jar`.  
 It contains all bundled dependencies (Apache HttpClient 5, Jackson, Jayway JSONPath) with
 shaded package names to avoid classpath conflicts.
 
@@ -22,7 +22,7 @@ shaded package names to avoid classpath conflicts.
 
 ```bash
 # 1. Copy to providers directory
-cp target/kc-rest-claim-mapper-1.0.0.jar /opt/keycloak/providers/
+cp target/kc-rest-claim-mapper-1.1.0.jar /opt/keycloak/providers/
 
 # 2. Re-run the Keycloak build step (required after adding a new provider)
 /opt/keycloak/bin/kc.sh build
@@ -39,7 +39,7 @@ cp target/kc-rest-claim-mapper-1.0.0.jar /opt/keycloak/providers/
 
 ```dockerfile
 FROM quay.io/keycloak/keycloak:26.0.7 AS builder
-COPY kc-rest-claim-mapper-1.0.0.jar /opt/keycloak/providers/
+COPY kc-rest-claim-mapper-1.1.0.jar /opt/keycloak/providers/
 RUN /opt/keycloak/bin/kc.sh build
 
 FROM quay.io/keycloak/keycloak:26.0.7

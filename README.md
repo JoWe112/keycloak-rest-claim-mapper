@@ -1,6 +1,6 @@
 # keycloak-rest-claim-mapper
 
-A **Keycloak 26.x custom OIDC Protocol Mapper** that enriches federated users with attributes fetched from one or more external REST APIs at token issuance time.
+A **Keycloak 26.x custom OIDC and SAML Protocol Mapper** that enriches federated users with attributes fetched from one or more external REST APIs at token issuance time.
 
 ## Features
 
@@ -10,7 +10,7 @@ A **Keycloak 26.x custom OIDC Protocol Mapper** that enriches federated users wi
 - 🌐 Up to **3 configurable REST API endpoints** executed in *parallel* (significantly faster than configuring multiple separate Keycloak mappers)
 - 🔐 Supports **API key**, **Basic Auth**, and **OAuth2 client credentials** authentication
 - 📜 **GraalVM Polyglot JS** for dynamic query string construction (`query.script`)
-- 🗂️ **JSONPath** (Jayway) and plain field mapping to OIDC claims
+- 🗂️ **JSONPath** (Jayway) and plain field mapping to OIDC claims and SAML attributes
 - 🧪 **Test Query panel** — live REST endpoint testing via Admin API without a real user login
 - 📦 Deployed as a single fat JAR in `/opt/keycloak/providers/`
 
@@ -22,12 +22,12 @@ A **Keycloak 26.x custom OIDC Protocol Mapper** that enriches federated users wi
 mvn clean package
 ```
 
-This produces `target/keycloak-rest-claim-mapper-1.0.0.jar` (a shaded fat JAR with all dependencies).
+This produces `target/keycloak-rest-claim-mapper-1.1.0.jar` (a shaded fat JAR with all dependencies).
 
 ### 2. Deploy
 
 ```bash
-cp target/keycloak-rest-claim-mapper-1.0.0.jar /opt/keycloak/providers/
+cp target/keycloak-rest-claim-mapper-1.1.0.jar /opt/keycloak/providers/
 /opt/keycloak/bin/kc.sh build
 /opt/keycloak/bin/kc.sh start
 ```
@@ -36,8 +36,9 @@ cp target/keycloak-rest-claim-mapper-1.0.0.jar /opt/keycloak/providers/
 
 In the Keycloak Admin Console:
 
-- **Per client**: `Clients → <client> → Client Scopes → <client>-dedicated → Add Mapper → By Configuration → REST Attribute Enrichment`
-- **Shared (all clients)**: `Client Scopes → Create scope → Mappers → Add Mapper → By Configuration → REST Attribute Enrichment`
+- **OIDC Per client**: `Clients → <client> → Client Scopes → <client>-dedicated → Add Mapper → By Configuration → REST Attribute Enrichment`
+- **OIDC Shared**: `Client Scopes → Create scope → Mappers → Add Mapper → By Configuration → REST Attribute Enrichment`
+- **SAML Per client**: `Clients → <client> → Client Scopes → <client>-dedicated → Add Mapper → By Configuration → SAML REST Attribute Enrichment`
 
 See [`docs/ADMIN_GUIDE.md`](docs/ADMIN_GUIDE.md) for the full configuration reference.
 
@@ -68,7 +69,9 @@ See [`docs/ADMIN_GUIDE.md`](docs/ADMIN_GUIDE.md) for the full configuration refe
 ```
 src/main/java/com/github/jowe112/keycloak/
   mapper/
-    RestClaimMapper.java          # Main mapper (extends AbstractOIDCProtocolMapper)
+    RestClaimMapper.java          # Main OIDC mapper
+    SamlRestClaimMapper.java      # Main SAML mapper
+    RestMapperConfig.java         # Shared configuration setup
     ConfigParser.java             # Parses KC config map → List<EndpointConfig>
     EndpointConfig.java           # Per-endpoint config POJO
     MappingRule.java              # apiField→claimName mapping rule

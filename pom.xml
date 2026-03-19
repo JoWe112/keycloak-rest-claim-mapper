@@ -7,7 +7,7 @@
 
     <groupId>com.github.jowe112.keycloak</groupId>
     <artifactId>kc-rest-claim-mapper</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
 
     <name>Keycloak REST Claim Mapper</name>
@@ -67,6 +67,18 @@
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-core</artifactId>
+            <version>${keycloak.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-saml-core</artifactId>
+            <version>${keycloak.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-saml-core-public</artifactId>
             <version>${keycloak.version}</version>
             <scope>provided</scope>
         </dependency>
