@@ -6,7 +6,6 @@ import org.keycloak.dom.saml.v2.assertion.AttributeType;
 import org.keycloak.models.*;
 import org.keycloak.protocol.saml.mappers.AbstractSAMLProtocolMapper;
 import org.keycloak.protocol.saml.mappers.SAMLAttributeStatementMapper;
-import org.keycloak.protocol.saml.mappers.AttributeStatementHelper;
 import org.keycloak.provider.ProviderConfigProperty;
 
 import java.util.*;
@@ -18,6 +17,14 @@ public class SamlRestClaimMapper extends AbstractSAMLProtocolMapper implements S
     public static final String PROVIDER_ID = "saml-rest-claim-mapper";
     public static final String DISPLAY_TYPE = "SAML REST Attribute Enrichment";
     public static final String DISPLAY_CATEGORY = "Attribute mapper";
+    
+    private static final String SAML_NAME_FORMAT_BASIC = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic";
+    private static final String SAML_NAME_FORMAT_URI = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri";
+    private static final String SAML_NAME_FORMAT_UNSPECIFIED = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified";
+
+    private static final String UI_NAME_FORMAT_BASIC = "Basic";
+    private static final String UI_NAME_FORMAT_URI = "URI Reference";
+    private static final String UI_NAME_FORMAT_UNSPECIFIED = "Unspecified";
 
     private static final List<ProviderConfigProperty> CONFIG_PROPERTIES;
 
@@ -35,8 +42,8 @@ public class SamlRestClaimMapper extends AbstractSAMLProtocolMapper implements S
                     nameFormat.setLabel("Endpoint " + n + ": SAML NameFormat");
                     nameFormat.setHelpText("SAML NameFormat for the attributes produced by Endpoint " + n + ".");
                     nameFormat.setType(ProviderConfigProperty.LIST_TYPE);
-                    nameFormat.setOptions(Arrays.asList(AttributeStatementHelper.BASIC, AttributeStatementHelper.URI_REFERENCE, AttributeStatementHelper.UNSPECIFIED));
-                    nameFormat.setDefaultValue(AttributeStatementHelper.BASIC);
+                    nameFormat.setOptions(Arrays.asList(UI_NAME_FORMAT_BASIC, UI_NAME_FORMAT_URI, UI_NAME_FORMAT_UNSPECIFIED));
+                    nameFormat.setDefaultValue(UI_NAME_FORMAT_BASIC);
                     props.add(nameFormat);
                     break;
                 }
@@ -101,15 +108,15 @@ public class SamlRestClaimMapper extends AbstractSAMLProtocolMapper implements S
             Map<String, String> claimNameFormatMap = new HashMap<>();
             for (EndpointConfig ep : endpoints) {
                 if (!ep.isConfigured()) continue;
-                String epNameFormat = config.getOrDefault("endpoint." + ep.getIndex() + ".saml.nameformat", AttributeStatementHelper.BASIC);
+                String epNameFormat = config.getOrDefault("endpoint." + ep.getIndex() + ".saml.nameformat", UI_NAME_FORMAT_BASIC);
                 for (MappingRule rule : ep.getMappingRules()) {
-                    claimNameFormatMap.put(rule.getClaimName(), epNameFormat);
+                    claimNameFormatMap.put(rule.getClaimName(), getSAMLNameFormat(epNameFormat));
                 }
             }
 
             for (Map.Entry<String, Object> entry : claims.entrySet()) {
                 String claimName = entry.getKey();
-                String nameFormat = claimNameFormatMap.getOrDefault(claimName, AttributeStatementHelper.BASIC);
+                String nameFormat = claimNameFormatMap.getOrDefault(claimName, SAML_NAME_FORMAT_BASIC);
                 Object claimValue = entry.getValue();
 
                 AttributeType attribute = new AttributeType(claimName);
@@ -133,5 +140,13 @@ public class SamlRestClaimMapper extends AbstractSAMLProtocolMapper implements S
         } catch (Exception e) {
             LOG.errorf(e, "SamlRestClaimMapper: unexpected error — claims skipped for session %s", userSession.getId());
         }
+    }
+
+    private String getSAMLNameFormat(String nameFormat) {
+        if (nameFormat == null) return SAML_NAME_FORMAT_BASIC;
+        if (nameFormat.equalsIgnoreCase("Basic")) return SAML_NAME_FORMAT_BASIC;
+        if (nameFormat.equalsIgnoreCase("URI Reference")) return SAML_NAME_FORMAT_URI;
+        if (nameFormat.equalsIgnoreCase("Unspecified")) return SAML_NAME_FORMAT_UNSPECIFIED;
+        return nameFormat;
     }
 }
