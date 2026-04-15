@@ -33,7 +33,7 @@ jobs:
           mv target/kc-rest-claim-mapper-${{ env.VERSION }}.jar target/kc-rest-claim-mapper-${{ env.VERSION }}.jar
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: target/kc-rest-claim-mapper-${{ env.VERSION }}.jar
           name: Release ${{ github.ref_name }}
