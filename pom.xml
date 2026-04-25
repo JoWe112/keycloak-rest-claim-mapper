@@ -28,7 +28,7 @@
         <keycloak.version>26.6.1</keycloak.version>
 
         <!-- Apache HttpClient 5 -->
-        <httpclient5.version>5.6</httpclient5.version>
+        <httpclient5.version>5.6.1</httpclient5.version>
 
         <!-- Jackson -->
         <jackson.version>2.19.2</jackson.version>
