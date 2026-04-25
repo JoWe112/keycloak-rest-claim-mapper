@@ -199,6 +199,8 @@ To achieve this, configure `query.script` to build a valid GraphQL GET query str
 
 *Note how the template literal (the backticks `` ` ``) allows the query string to span multiple lines, and allows direct injection of JS variables with `${username}`.*
 
+> **Tip on GraphQL Arrays:** If your GraphQL query returns a list/array of items (for example, `{"data": {"ldapUser": [{"id": "jdoe"}]}}`) instead of a single object, you must use array indexing in your JSONPath mapping. For example: `$.data.ldapUser[0].id→user_legacy_id`.
+
 ---
 
 ## Full Example
