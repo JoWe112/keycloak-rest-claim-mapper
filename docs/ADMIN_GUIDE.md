@@ -174,7 +174,14 @@ query {
     cn
     mail
     memberOf
-    title
+    title {
+      org
+    }
+    team {
+      id
+      name
+      description
+    }
   }
 }
 ```
@@ -187,10 +194,12 @@ To achieve this, configure `query.script` to build a valid GraphQL GET query str
 |---|---|
 | `endpoint.1.url` | `https://api.example.com/graphql` |
 | `endpoint.1.query.param.1` | `username` |
-| `endpoint.1.query.script` | <pre>"?query=" + encodeURIComponent(&#96;query { ldapUser<br>(uid: "${username}")<br> { cn mail memberOf title } <br>}&#96;)</pre> |
-| `endpoint.1.mapping` | `$.data.ldapUser.title→job_title, $.data.ldapUser.memberOf→groups` |
+| `endpoint.1.query.script` | <pre>"?query=" + encodeURIComponent(&#96;query { ldapUser<br>(uid: "${username}")<br> { cn mail memberOf title { org } team { id name description } } <br>}&#96;)</pre> |
+| `endpoint.1.mapping` | `$.data.ldapUser[0].title.org→org, $.data.ldapUser[0].team.name→team_name, $.data.ldapUser[0].memberOf→groups` |
 
 *Note how the template literal (the backticks `` ` ``) allows the query string to span multiple lines, and allows direct injection of JS variables with `${username}`.*
+
+> **Tip on GraphQL Arrays:** If your GraphQL query returns a list/array of items (for example, `{"data": {"ldapUser": [{"id": "jdoe"}]}}`) instead of a single object, you must use array indexing in your JSONPath mapping. For example: `$.data.ldapUser[0].id→user_legacy_id`.
 
 ---
 
