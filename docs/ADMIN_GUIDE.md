@@ -195,7 +195,7 @@ To achieve this, configure `query.script` to build a valid GraphQL GET query str
 | `endpoint.1.url` | `https://api.example.com/graphql` |
 | `endpoint.1.query.param.1` | `username` |
 | `endpoint.1.query.script` | <pre>"?query=" + encodeURIComponent(&#96;query { ldapUser<br>(uid: "${username}")<br> { cn mail memberOf title { org } team { id name description } } <br>}&#96;)</pre> |
-| `endpoint.1.mapping` | `$.data.ldapUser.title.org→org, $.data.ldapUser.team.name→team_name, $.data.ldapUser.memberOf→groups` |
+| `endpoint.1.mapping` | `$.data.ldapUser[0].title.org→org, $.data.ldapUser[0].team.name→team_name, $.data.ldapUser[0].memberOf→groups` |
 
 *Note how the template literal (the backticks `` ` ``) allows the query string to span multiple lines, and allows direct injection of JS variables with `${username}`.*
 
