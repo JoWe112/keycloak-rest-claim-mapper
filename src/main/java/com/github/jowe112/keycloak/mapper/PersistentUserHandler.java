@@ -1,5 +1,7 @@
 package com.github.jowe112.keycloak.mapper;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
 import org.keycloak.models.UserModel;
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +35,9 @@ import java.util.concurrent.TimeoutException;
 public final class PersistentUserHandler {
 
     private static final Logger LOG = Logger.getLogger(PersistentUserHandler.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private static final String STRUCTURED_PREFIX = "json:";
 
     /** Attribute prefix used for all cache keys written to UserModel. */
     public static final String CACHE_PREFIX = "rest_claim_mapper.";
@@ -145,7 +150,10 @@ public final class PersistentUserHandler {
                     for (Map.Entry<String, Object> entry : mappedClaims.entrySet()) {
                         String attrKey = CACHE_PREFIX + mapperId + "." + entry.getKey();
                         Object val = entry.getValue();
-                        if (val instanceof List<?> list) {
+                        if (isStructuredValue(val)) {
+                            String json = OBJECT_MAPPER.writeValueAsString(val);
+                            user.setSingleAttribute(attrKey, STRUCTURED_PREFIX + json);
+                        } else if (val instanceof List<?> list) {
                             user.setAttribute(attrKey, list.stream().map(Object::toString).toList());
                         } else {
                             user.setSingleAttribute(attrKey, val.toString());
@@ -175,10 +183,30 @@ public final class PersistentUserHandler {
             String attrKey = CACHE_PREFIX + mapperId + "." + rule.getClaimName();
             List<String> values = user.getAttributeStream(attrKey).toList();
             if (!values.isEmpty()) {
-                result.put(rule.getClaimName(), values.size() == 1 ? values.get(0) : values);
+                String first = values.get(0);
+                if (first.startsWith(STRUCTURED_PREFIX)) {
+                    try {
+                        Object parsed = OBJECT_MAPPER.readValue(first.substring(STRUCTURED_PREFIX.length()),
+                                Object.class);
+                        result.put(rule.getClaimName(), parsed);
+                    } catch (JsonProcessingException e) {
+                        LOG.warnf("Failed to deserialize structured cache for claim '%s': %s",
+                                rule.getClaimName(), e.getMessage());
+                    }
+                } else {
+                    result.put(rule.getClaimName(), values.size() == 1 ? first : values);
+                }
             }
         }
         return result;
+    }
+
+    private static boolean isStructuredValue(Object val) {
+        if (val instanceof Map) return true;
+        if (val instanceof List<?> list && !list.isEmpty()) {
+            return list.get(0) instanceof Map;
+        }
+        return false;
     }
 
     /** Builds variable map for the query script from userContext. */

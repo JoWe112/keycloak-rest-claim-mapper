@@ -121,6 +121,7 @@ public final class EndpointConfig {
         for (MappingRule r : mappingRules) {
             hash = 31 * hash + r.getApiField().hashCode();
             hash = 31 * hash + r.getClaimName().hashCode();
+            hash = 31 * hash + (r.isPreserveJsonStructure() ? 1 : 0);
         }
         return Integer.toHexString(hash);
     }
