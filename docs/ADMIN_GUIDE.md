@@ -98,6 +98,12 @@ role→user_role,department→user_dept,$.profile.groups[0]→first_group
 - Multi-value: if the API returns a JSON array, the claim becomes a `List<String>`
 - **Structured JSON** (`$.data.users→json:user_list`): prefix the claim name with `json:` to preserve the full JSON structure (arrays of objects, nested fields). See [Structured JSON Claims](#structured-json-claims) below.
 
+> **Tip — force a string output:** If the resolved value is an array but you only want a single string in the claim, append `[0]` to the JSONPath expression to select the first element:
+> ```
+> $.data.User[0].team[0].name→team_name
+> ```
+> Result: `"team_name": "Team IAM"` (string, not an array).
+
 ### Structured JSON Claims
 
 By default, arrays returned by the API are flattened to `List<String>` — each element is converted with `.toString()`, and single-element arrays are collapsed to a plain string. This works well for simple lists of scalar values (group names, roles, tags).
