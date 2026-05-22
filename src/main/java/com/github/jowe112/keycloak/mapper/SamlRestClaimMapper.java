@@ -1,5 +1,7 @@
 package com.github.jowe112.keycloak.mapper;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
 import org.keycloak.dom.saml.v2.assertion.AttributeStatementType;
 import org.keycloak.dom.saml.v2.assertion.AttributeType;
@@ -13,6 +15,7 @@ import java.util.*;
 public class SamlRestClaimMapper extends AbstractSAMLProtocolMapper implements SAMLAttributeStatementMapper {
 
     private static final Logger LOG = Logger.getLogger(SamlRestClaimMapper.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static final String PROVIDER_ID = "saml-rest-claim-mapper";
     public static final String DISPLAY_TYPE = "SAML REST Attribute Enrichment";
@@ -122,7 +125,13 @@ public class SamlRestClaimMapper extends AbstractSAMLProtocolMapper implements S
                 AttributeType attribute = new AttributeType(claimName);
                 attribute.setNameFormat(nameFormat);
                 
-                if (claimValue instanceof Collection) {
+                if (isStructuredValue(claimValue)) {
+                    try {
+                        attribute.addAttributeValue(OBJECT_MAPPER.writeValueAsString(claimValue));
+                    } catch (JsonProcessingException e) {
+                        LOG.warnf("Failed to serialize structured claim '%s': %s", claimName, e.getMessage());
+                    }
+                } else if (claimValue instanceof Collection) {
                     for (Object val : (Collection<?>) claimValue) {
                         if (val != null) {
                             attribute.addAttributeValue(val.toString());
@@ -140,6 +149,14 @@ public class SamlRestClaimMapper extends AbstractSAMLProtocolMapper implements S
         } catch (Exception e) {
             LOG.errorf(e, "SamlRestClaimMapper: unexpected error — claims skipped for session %s", userSession.getId());
         }
+    }
+
+    private static boolean isStructuredValue(Object val) {
+        if (val instanceof Map) return true;
+        if (val instanceof List<?> list && !list.isEmpty()) {
+            return list.get(0) instanceof Map;
+        }
+        return false;
     }
 
     private String getSAMLNameFormat(String nameFormat) {

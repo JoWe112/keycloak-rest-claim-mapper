@@ -20,6 +20,9 @@ import java.util.Map;
  * Simple field names are resolved with Jackson; JSONPath expressions (starting
  * with {@code "$"}) are resolved with Jayway JSONPath. Scalar values become
  * {@code String}; arrays become {@code List<String>}.
+ * <p>
+ * When a rule has {@link MappingRule#isPreserveJsonStructure()} set, the full
+ * JSON structure is preserved (arrays of objects stay as {@code List<Map>}).
  */
 public final class JsonPathMapper {
 
@@ -53,9 +56,10 @@ public final class JsonPathMapper {
 
         for (MappingRule rule : mappingRules) {
             try {
+                boolean preserve = rule.isPreserveJsonStructure();
                 Object value = rule.isJsonPath()
-                        ? resolveJsonPath(rawJson, rule.getApiField())
-                        : resolveSimpleField(root, rule.getApiField());
+                        ? resolveJsonPath(rawJson, rule.getApiField(), preserve)
+                        : resolveSimpleField(root, rule.getApiField(), preserve);
 
                 if (value != null) {
                     claims.put(rule.getClaimName(), value);
@@ -73,18 +77,23 @@ public final class JsonPathMapper {
 
     // -------------------------------------------------------------------------
 
-    private static @Nullable Object resolveSimpleField(@NotNull JsonNode root, @NotNull String fieldName) {
+    private static @Nullable Object resolveSimpleField(@NotNull JsonNode root, @NotNull String fieldName,
+            boolean preserveStructure) {
         JsonNode node = root.get(fieldName);
         if (node == null || node.isNull())
             return null;
-        return nodeToValue(node);
+        return nodeToValue(node, preserveStructure);
     }
 
-    private static @Nullable Object resolveJsonPath(@NotNull String rawJson, @NotNull String expression) {
+    private static @Nullable Object resolveJsonPath(@NotNull String rawJson, @NotNull String expression,
+            boolean preserveStructure) {
         try {
             Object value = JsonPath.read(rawJson, expression);
             if (value == null)
                 return null;
+            if (preserveStructure) {
+                return OBJECT_MAPPER.convertValue(value, Object.class);
+            }
             if (value instanceof List<?> list) {
                 List<String> result = new ArrayList<>();
                 for (Object item : list) {
@@ -99,7 +108,11 @@ public final class JsonPathMapper {
         }
     }
 
-    private static @Nullable Object nodeToValue(@NotNull JsonNode node) {
+    @SuppressWarnings("unchecked")
+    private static @Nullable Object nodeToValue(@NotNull JsonNode node, boolean preserveStructure) {
+        if (preserveStructure) {
+            return OBJECT_MAPPER.convertValue(node, Object.class);
+        }
         if (node.isArray()) {
             List<String> list = new ArrayList<>();
             for (JsonNode element : node) {

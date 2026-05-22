@@ -27,6 +27,15 @@ import java.util.Map;
  */
 public final class QueryScriptEvaluator {
 
+    static {
+        // The Truffle native-attach library cannot survive fat-JAR shading, which
+        // produces a noisy WARNING at startup. Functionality is unaffected — scripts
+        // run in interpreter mode, which is perfectly adequate for simple query-string
+        // expressions. Respect any explicit override set via -D on the JVM command line.
+        System.setProperty("polyglotimpl.AttachLibraryFailureAction",
+                System.getProperty("polyglotimpl.AttachLibraryFailureAction", "ignore"));
+    }
+
     private static final Logger LOG = Logger.getLogger(QueryScriptEvaluator.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

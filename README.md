@@ -11,6 +11,7 @@ A **Keycloak 26.x custom OIDC and SAML Protocol Mapper** that enriches federated
 - 🔐 Supports **API key**, **Basic Auth**, and **OAuth2 client credentials** authentication
 - 📜 **GraalVM Polyglot JS** for dynamic query string construction (`query.script`)
 - 🗂️ **JSONPath** (Jayway) and plain field mapping to OIDC claims and SAML attributes
+- 🧩 **Structured JSON claims** — map entire arrays of objects into a single claim with the `json:` prefix (ideal for GraphQL responses)
 - 🧪 **Test Query panel** — live REST endpoint testing via Admin API without a real user login
 - 📦 Deployed as a single fat JAR in `/opt/keycloak/providers/`
 

@@ -96,6 +96,57 @@ role→user_role,department→user_dept,$.profile.groups[0]→first_group
 - **Plain name** (`role→user_role`): uses Jackson to read `response["role"]`
 - **JSONPath** (`$.user.profile.dept→user_dept`): uses Jayway JSONPath
 - Multi-value: if the API returns a JSON array, the claim becomes a `List<String>`
+- **Structured JSON** (`$.data.users→json:user_list`): prefix the claim name with `json:` to preserve the full JSON structure (arrays of objects, nested fields). See [Structured JSON Claims](#structured-json-claims) below.
+
+### Structured JSON Claims
+
+By default, arrays returned by the API are flattened to `List<String>` — each element is converted with `.toString()`, and single-element arrays are collapsed to a plain string. This works well for simple lists of scalar values (group names, roles, tags).
+
+When the API returns **arrays of objects** (common with GraphQL), you usually want to preserve the full structure. Prefix the claim name with `json:` to enable structured mode:
+
+```
+$.data.ldapUser→json:users
+```
+
+**Behavior in structured mode:**
+- Arrays of objects → preserved as `List<Map>` (nested objects and arrays intact)
+- Arrays of scalars → preserved as `List<String>` (single-element arrays are **not** collapsed)
+- Scalars → returned as-is
+
+**Example:** Given a GraphQL response:
+
+```json
+{
+  "data": {
+    "ldapUser": [
+      {"cn": "John", "mail": "john@example.com", "memberOf": ["group1", "group2"]},
+      {"cn": "Jane", "mail": "jane@example.com", "memberOf": ["group3"]}
+    ]
+  }
+}
+```
+
+| Mapping | Claim value |
+|---|---|
+| `$.data.ldapUser[0].cn→first_name` | `"John"` (plain string) |
+| `$.data.ldapUser→json:users` | Full array of objects with nested `memberOf` arrays preserved |
+
+The resulting OIDC token claim:
+
+```json
+{
+  "users": [
+    {"cn": "John", "mail": "john@example.com", "memberOf": ["group1", "group2"]},
+    {"cn": "Jane", "mail": "jane@example.com", "memberOf": ["group3"]}
+  ]
+}
+```
+
+> **Token Size Warning:** Putting large arrays of objects into JWT claims increases the token size. Keep the mapped data set small, or use the `userinfo` endpoint for large payloads.
+
+> **SAML:** Structured values are JSON-serialized as a single SAML attribute string value, since SAML attributes are inherently string-based.
+
+> **Persistent User Caching:** Structured values are serialized as JSON strings in Keycloak's `UserModel` attributes and deserialized transparently on cache reads.
 
 ---
 
@@ -199,7 +250,7 @@ To achieve this, configure `query.script` to build a valid GraphQL GET query str
 
 *Note how the template literal (the backticks `` ` ``) allows the query string to span multiple lines, and allows direct injection of JS variables with `${username}`.*
 
-> **Tip on GraphQL Arrays:** If your GraphQL query returns a list/array of items (for example, `{"data": {"ldapUser": [{"id": "jdoe"}]}}`) instead of a single object, you must use array indexing in your JSONPath mapping. For example: `$.data.ldapUser[0].id→user_legacy_id`.
+> **Tip on GraphQL Arrays:** If your GraphQL query returns a list/array of items (for example, `{"data": {"ldapUser": [{"id": "jdoe"}]}}`) instead of a single object, you can either use array indexing to pick individual fields (`$.data.ldapUser[0].id→user_legacy_id`) or use the `json:` prefix to map the entire array as a structured claim (`$.data.ldapUser→json:users`). See [Structured JSON Claims](#structured-json-claims).
 
 ---
 
