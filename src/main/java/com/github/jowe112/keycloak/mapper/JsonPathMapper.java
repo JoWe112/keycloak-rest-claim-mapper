@@ -92,7 +92,7 @@ public final class JsonPathMapper {
             if (value == null)
                 return null;
             if (preserveStructure) {
-                return value;
+                return OBJECT_MAPPER.convertValue(value, Object.class);
             }
             if (value instanceof List<?> list) {
                 List<String> result = new ArrayList<>();
