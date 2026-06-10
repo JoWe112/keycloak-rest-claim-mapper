@@ -139,12 +139,13 @@
             <version>${jackson.version}</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
-            <scope>compile</scope>
-        </dependency>
+        <!--
+            jackson-annotations is intentionally NOT declared explicitly:
+            since 2.20 it uses a patch-less version scheme (2.22, not 2.22.0),
+            so ${jackson.version} no longer resolves for it. jackson-databind
+            pulls in the matching annotations version transitively, and the
+            shade plugin bundles it into the fat JAR either way.
+        -->
 
         <!-- ===================== Jayway JSONPath (bundled) ================== -->
         <dependency>
