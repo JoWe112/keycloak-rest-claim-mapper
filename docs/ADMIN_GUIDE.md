@@ -171,6 +171,8 @@ Authorization: Bearer <admin-token>
 Content-Type: application/json
 ```
 
+> **Authorization required.** This endpoint makes Keycloak issue a live HTTP request to the URL you supply and returns the response, so it is restricted to realm admins. The bearer token must belong to a user holding the realm-management **`manage-clients`** role *in the target realm* (the `realm-admin` composite includes it). Requests with no/invalid token receive **401**; authenticated non-admins receive **403**. Because the check is scoped to the target realm, obtain the token from that realm — a token from a different realm (e.g. `master`) will not be accepted.
+
 **Request body:**
 ```json
 {
@@ -202,10 +204,13 @@ Content-Type: application/json
 
 ### Getting an Admin Token
 
+Obtain the token from the **same realm** you are testing (`myrealm` below), using an
+account that holds the realm-management `manage-clients` (or `realm-admin`) role:
+
 ```bash
 TOKEN=$(curl -s -X POST \
-  "https://keycloak.example.com/realms/master/protocol/openid-connect/token" \
-  -d "client_id=admin-cli&grant_type=password&username=admin&password=<pw>" \
+  "https://keycloak.example.com/realms/myrealm/protocol/openid-connect/token" \
+  -d "client_id=admin-cli&grant_type=password&username=<realm-admin>&password=<pw>" \
   | jq -r .access_token)
 
 curl -s -X POST \
