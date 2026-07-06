@@ -37,7 +37,15 @@ public final class PersistentUserHandler {
     private static final Logger LOG = Logger.getLogger(PersistentUserHandler.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private static final String STRUCTURED_PREFIX = "json:";
+    /**
+     * Marker prepended to a cached attribute value that holds a JSON-serialized
+     * structured claim (see {@code json:} mapping prefix). The leading
+     * {@code U+E000} is a Unicode Private-Use-Area character: it is valid UTF-8
+     * (safe for text columns, unlike a NUL byte) yet never occurs in real REST
+     * response data, so a plain scalar value can never be mistaken for a
+     * structured one.
+     */
+    private static final String STRUCTURED_PREFIX = "json:";
 
     /** Attribute prefix used for all cache keys written to UserModel. */
     public static final String CACHE_PREFIX = "rest_claim_mapper.";
