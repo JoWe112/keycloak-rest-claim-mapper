@@ -3,6 +3,7 @@ package com.github.jowe112.keycloak.mapper;
 import org.jboss.logging.Logger;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.ResourceLimits;
 import org.graalvm.polyglot.Value;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,6 +40,16 @@ public final class QueryScriptEvaluator {
     private static final Logger LOG = Logger.getLogger(QueryScriptEvaluator.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /**
+     * Upper bound on the number of statements a query script may execute before
+     * it is forcibly cancelled. A script that only builds a query string runs a
+     * handful of statements, so this generous ceiling never affects legitimate
+     * use, but it stops a runaway or malicious loop from tying up a worker thread
+     * until the handler's 10-second fetch timeout fires. Supported in GraalVM
+     * Community Edition (statement counting, not CPU-time sandboxing).
+     */
+    private static final long STATEMENT_LIMIT = 100_000L;
+
     private QueryScriptEvaluator() {
     }
 
@@ -73,16 +84,26 @@ public final class QueryScriptEvaluator {
         }
         fullScript.append(script);
 
+        ResourceLimits limits = ResourceLimits.newBuilder()
+                .statementLimit(STATEMENT_LIMIT, null)
+                .build();
+
         try (Context ctx = Context.newBuilder("js")
                 .allowAllAccess(false)
                 .option("engine.WarnInterpreterOnly", "false")
+                .resourceLimits(limits)
                 .build()) {
 
             Value result = ctx.eval("js", fullScript.toString());
             return result.asString();
 
         } catch (PolyglotException e) {
-            LOG.errorf("QueryScript evaluation failed: %s | script: %s", e.getMessage(), script);
+            if (e.isResourceExhausted()) {
+                LOG.errorf("QueryScript exceeded the %d-statement limit and was cancelled | script: %s",
+                        STATEMENT_LIMIT, script);
+            } else {
+                LOG.errorf("QueryScript evaluation failed: %s | script: %s", e.getMessage(), script);
+            }
             return "";
         } catch (Exception e) {
             LOG.errorf(e, "Unexpected error evaluating query script: %s", script);
