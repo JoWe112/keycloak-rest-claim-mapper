@@ -7,7 +7,15 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jboss.logging.Logger;
+import org.keycloak.models.AdminRoles;
+import org.keycloak.models.ClientModel;
+import org.keycloak.models.Constants;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.RealmModel;
+import org.keycloak.models.RoleModel;
+import org.keycloak.models.UserModel;
+import org.keycloak.services.managers.AppAuthManager;
+import org.keycloak.services.managers.AuthenticationManager.AuthResult;
 import org.keycloak.services.resource.RealmResourceProvider;
 
 import java.util.List;
@@ -31,8 +39,10 @@ public class TestQueryResourceProvider implements RealmResourceProvider {
     private static final Logger LOG = Logger.getLogger(TestQueryResourceProvider.class);
     private static final ObjectMapper JSON = new ObjectMapper();
 
+    private final KeycloakSession session;
+
     public TestQueryResourceProvider(KeycloakSession session) {
-        // session not needed for this stateless resource
+        this.session = session;
     }
 
     @Override
@@ -83,6 +93,11 @@ public class TestQueryResourceProvider implements RealmResourceProvider {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response testQuery(TestQueryRequest req) {
+        // Authenticate and authorize BEFORE any request parsing or outbound HTTP
+        // call — this endpoint makes Keycloak issue live requests to a caller-supplied
+        // URL and reflects the response, so it must be restricted to realm admins.
+        requireRealmAdmin();
+
         TestQueryResponse resp = new TestQueryResponse();
 
         try {
@@ -132,6 +147,38 @@ public class TestQueryResourceProvider implements RealmResourceProvider {
             return Response.ok(JSON.writeValueAsString(resp)).build();
         } catch (Exception e) {
             return Response.serverError().entity("{\"error\":\"Serialization failed\"}").build();
+        }
+    }
+
+    // ── Authorization ─────────────────────────────────────────────────────────
+
+    /**
+     * Ensures the caller presents a valid bearer token for a user who holds the
+     * realm-management {@code manage-clients} admin role (the same permission
+     * required to configure this mapper). The {@code realm-admin} composite
+     * includes this role, so full realm admins also pass.
+     *
+     * @throws NotAuthorizedException (401) if no valid bearer token is present
+     * @throws ForbiddenException     (403) if the user is not a realm admin
+     */
+    private void requireRealmAdmin() {
+        AuthResult auth = new AppAuthManager.BearerTokenAuthenticator(session).authenticate();
+        if (auth == null || auth.getUser() == null) {
+            throw new NotAuthorizedException("A valid admin bearer token is required");
+        }
+
+        RealmModel realm = session.getContext().getRealm();
+        ClientModel realmMgmt = realm.getClientByClientId(Constants.REALM_MANAGEMENT_CLIENT_ID);
+        if (realmMgmt == null) {
+            LOG.errorf("realm-management client not found in realm '%s'", realm.getName());
+            throw new ForbiddenException("Admin role required");
+        }
+
+        RoleModel manageClients = realmMgmt.getRole(AdminRoles.MANAGE_CLIENTS);
+        UserModel user = auth.getUser();
+        if (manageClients == null || !user.hasRole(manageClients)) {
+            throw new ForbiddenException("Requires the realm-management '"
+                    + AdminRoles.MANAGE_CLIENTS + "' role");
         }
     }
 
