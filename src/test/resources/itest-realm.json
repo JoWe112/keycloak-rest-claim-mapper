@@ -1,0 +1,14 @@
+{
+  "realm": "itest",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "test-cli",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["*"]
+    }
+  ]
+}

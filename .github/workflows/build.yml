@@ -22,5 +22,8 @@ jobs:
         distribution: 'temurin'
         cache: maven
         
-    - name: Build with Maven
-      run: mvn -B package --file pom.xml
+    - name: Build & verify with Maven
+      # 'verify' runs unit tests (surefire), builds the shaded JAR (package),
+      # then the *IT integration tests (failsafe), which start a Keycloak
+      # container via Testcontainers — Docker is available on the runner.
+      run: mvn -B verify --file pom.xml
