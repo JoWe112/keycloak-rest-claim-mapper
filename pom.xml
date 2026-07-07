@@ -41,6 +41,10 @@
 
         <!-- Shade plugin -->
         <shade.plugin.version>3.6.2</shade.plugin.version>
+
+        <!-- Integration test (Testcontainers) -->
+        <testcontainers.version>1.21.4</testcontainers.version>
+        <testcontainers-keycloak.version>3.9.1</testcontainers-keycloak.version>
     </properties>
 
     <dependencies>
@@ -185,6 +189,30 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- ===================== Integration tests (test scope) ============= -->
+        <!-- Spins up a real Keycloak with the built provider JAR for the
+             Test Query endpoint auth integration test (*IT, failsafe phase). -->
+        <dependency>
+            <groupId>com.github.dasniko</groupId>
+            <artifactId>testcontainers-keycloak</artifactId>
+            <version>${testcontainers-keycloak.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Pin core explicitly so it aligns with junit-jupiter above rather than
+             resolving to whatever testcontainers-keycloak brings transitively. -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -198,6 +226,22 @@
                 <configuration>
                     <argLine>-Djava.util.logging.manager=org.jboss.logmanager.LogManager</argLine>
                 </configuration>
+            </plugin>
+
+            <!-- Failsafe: runs *IT integration tests in the verify phase, after
+                 the shaded provider JAR has been built in the package phase. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.5.6</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Compiler -->
