@@ -28,10 +28,6 @@ jobs:
         id: get_version
         run: echo "VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
 
-      - name: Rename shaded JAR
-        run: |
-          mv target/kc-rest-claim-mapper-${{ env.VERSION }}.jar target/kc-rest-claim-mapper-${{ env.VERSION }}.jar
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
