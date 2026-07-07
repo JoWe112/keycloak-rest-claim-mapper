@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
 import org.keycloak.models.UserModel;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -45,7 +46,7 @@ public final class PersistentUserHandler {
      * response data, so a plain scalar value can never be mistaken for a
      * structured one.
      */
-    private static final String STRUCTURED_PREFIX = "json:";
+    static final String STRUCTURED_PREFIX ="json:";
 
     /** Attribute prefix used for all cache keys written to UserModel. */
     public static final String CACHE_PREFIX = "rest_claim_mapper.";
@@ -159,8 +160,7 @@ public final class PersistentUserHandler {
                         String attrKey = CACHE_PREFIX + mapperId + "." + entry.getKey();
                         Object val = entry.getValue();
                         if (isStructuredValue(val)) {
-                            String json = OBJECT_MAPPER.writeValueAsString(val);
-                            user.setSingleAttribute(attrKey, STRUCTURED_PREFIX + json);
+                            user.setSingleAttribute(attrKey, encodeStructured(val));
                         } else if (val instanceof List<?> list) {
                             user.setAttribute(attrKey, list.stream().map(Object::toString).toList());
                         } else {
@@ -190,31 +190,64 @@ public final class PersistentUserHandler {
         for (MappingRule rule : ep.getMappingRules()) {
             String attrKey = CACHE_PREFIX + mapperId + "." + rule.getClaimName();
             List<String> values = user.getAttributeStream(attrKey).toList();
-            if (!values.isEmpty()) {
-                String first = values.get(0);
-                if (first.startsWith(STRUCTURED_PREFIX)) {
-                    try {
-                        Object parsed = OBJECT_MAPPER.readValue(first.substring(STRUCTURED_PREFIX.length()),
-                                Object.class);
-                        result.put(rule.getClaimName(), parsed);
-                    } catch (JsonProcessingException e) {
-                        LOG.warnf("Failed to deserialize structured cache for claim '%s': %s",
-                                rule.getClaimName(), e.getMessage());
-                    }
-                } else {
-                    result.put(rule.getClaimName(), values.size() == 1 ? first : values);
-                }
+            Object decoded = decodeCached(values);
+            if (decoded != null) {
+                result.put(rule.getClaimName(), decoded);
             }
         }
         return result;
     }
 
-    private static boolean isStructuredValue(Object val) {
+    /**
+     * A value is "structured" when it carries JSON object shape that must be
+     * preserved in the cache — a {@link Map}, or a {@link List} whose first
+     * element is a {@link Map}. Plain scalars and lists of scalars are not.
+     */
+    static boolean isStructuredValue(Object val) {
         if (val instanceof Map) return true;
         if (val instanceof List<?> list && !list.isEmpty()) {
             return list.get(0) instanceof Map;
         }
         return false;
+    }
+
+    /**
+     * Encodes a structured value for single-attribute storage: the JSON
+     * serialization prefixed with {@link #STRUCTURED_PREFIX}.
+     */
+    static @NotNull String encodeStructured(@NotNull Object structuredValue) throws JsonProcessingException {
+        return STRUCTURED_PREFIX + OBJECT_MAPPER.writeValueAsString(structuredValue);
+    }
+
+    /**
+     * Decodes cached attribute values back into a claim value, reversing the
+     * write-side encoding:
+     * <ul>
+     * <li>a single value carrying the {@link #STRUCTURED_PREFIX} marker → the
+     * deserialized JSON structure;</li>
+     * <li>a single plain value → that {@code String} (even if it happens to
+     * start with {@code "json:"} — only the marker triggers structured
+     * decoding);</li>
+     * <li>multiple values → the {@code List<String>} as stored.</li>
+     * </ul>
+     *
+     * @return the decoded value, or {@code null} if there is nothing cached or
+     *         a structured value fails to deserialize
+     */
+    static @Nullable Object decodeCached(@Nullable List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        String first = values.get(0);
+        if (first.startsWith(STRUCTURED_PREFIX)) {
+            try {
+                return OBJECT_MAPPER.readValue(first.substring(STRUCTURED_PREFIX.length()), Object.class);
+            } catch (JsonProcessingException e) {
+                LOG.warnf("Failed to deserialize structured cache value: %s", e.getMessage());
+                return null;
+            }
+        }
+        return values.size() == 1 ? first : values;
     }
 
     /** Builds variable map for the query script from userContext. */
