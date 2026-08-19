@@ -23,12 +23,12 @@ A **Keycloak 26.x custom OIDC and SAML Protocol Mapper** that enriches federated
 mvn clean package
 ```
 
-This produces `target/keycloak-rest-claim-mapper-1.1.0.jar` (a shaded fat JAR with all dependencies).
+This produces `target/kc-rest-claim-mapper-1.2.2.jar` (a shaded fat JAR with all dependencies).
 
 ### 2. Deploy
 
 ```bash
-cp target/keycloak-rest-claim-mapper-1.1.0.jar /opt/keycloak/providers/
+cp target/kc-rest-claim-mapper-1.2.2.jar /opt/keycloak/providers/
 /opt/keycloak/bin/kc.sh build
 /opt/keycloak/bin/kc.sh start
 ```
