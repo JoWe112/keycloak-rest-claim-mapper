@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-08-19
+
+Maintenance release. No changes to the mapper's own logic — this picks up
+upstream updates to the libraries bundled inside the fat JAR.
+
+### Changed
+- Bundled **GraalVM** `25.1.3` → `25.2.4` ([#77](https://github.com/JoWe112/keycloak-rest-claim-mapper/pull/77))
+- Bundled **Apache HttpClient5** → `5.6.4` ([#78](https://github.com/JoWe112/keycloak-rest-claim-mapper/pull/78), [#80](https://github.com/JoWe112/keycloak-rest-claim-mapper/pull/80))
+- Bundled **Jackson** `2.22.0` → `2.22.1` ([#71](https://github.com/JoWe112/keycloak-rest-claim-mapper/pull/71))
+
+### Tests
+- Unit tests for the structured-claim cache codec, covering the collision-proof marker ([#68](https://github.com/JoWe112/keycloak-rest-claim-mapper/pull/68))
+- Testcontainers integration test for the Test Query endpoint auth guard — asserts 401 / 403 / 200 / cross-realm rejection against a real Keycloak ([#70](https://github.com/JoWe112/keycloak-rest-claim-mapper/pull/70))
+
+### Dependencies
+- Keycloak (compile target, `provided` scope) `26.6.4` → `26.7.1`
+- JUnit Jupiter → `6.1.3`; testcontainers-keycloak → `4.3.1`
+
 ## [1.2.1] - 2026-07-07
 
 ### Security
