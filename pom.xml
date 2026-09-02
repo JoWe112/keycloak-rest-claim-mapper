@@ -37,7 +37,7 @@
         <jsonpath.version>3.0.0</jsonpath.version>
 
         <!-- GraalVM SDK — provided; KC 26 Quarkus ships on GraalVM JDK -->
-        <graalvm.version>25.2.4</graalvm.version>
+        <graalvm.version>25.3.4.1</graalvm.version>
 
         <!-- Shade plugin -->
         <shade.plugin.version>3.6.2</shade.plugin.version>
